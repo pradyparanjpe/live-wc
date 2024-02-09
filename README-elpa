@@ -1,0 +1,28 @@
+Live word count (`live-wc')
+==================================
+
+Count text words (excluding code, properties, comments, ...) in real time.
+
+Features
+------------
+- `live-wc-target' (local): Set word-count target for the buffer.
+- `live-wc-fraction' (local): Display word count as
+  absolute number of words (nil) or as fraction of target (t).
+- Face color of mode-line display changes according to the fraction.
+- Restrict word count to region if selected, optionally,
+  show as fraction of total.
+- Hover (mouse) over the segment for some more details.
+- Mouse-click to set target/fraction.
+
+Minor mode
+----------------
+`live-wc-mode': Inserts =live-wc= segment in the mode-line.
+`global-live-wc-mode': Inserts the segment in default mode-line.
+
+Customization
+-------------------
+Customization group `live-wc' (`convenience', `display')
+provides customization.
+
+`live-wc-mode' is auto-enabled for each mode listed in `global-live-wc-modes'
+(i.e. `text-mode' by default) and derivatives if the global mode is enabled.

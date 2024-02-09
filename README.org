@@ -1,0 +1,177 @@
+#+title: Live Word Count
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-readtheorg.setup
+#+AUTHOR: Pradyumna Swanand Paranjape 
+#+EMAIL: pradyparanjpe@rediffmail.com
+#+property: header-args :tangle no :mkdirp t :results no :eval never
+#+OPTIONS: _:{}
+#+EXPORT_FILE_NAME: index.html
+
+* Goals
+- Minor mode ~live-wc-mode~ displays live word count in mode-line.
+- Count text words in real-time (on the go).
+- [[*~live-wc-ignore-if~][Ignore]] lines that satisfy /arbitrary predicates/. (non-text, source-code, comments, ...)
+- Restrict word count to region when selected.
+- Set word-count target / cap (i.e. goal / limit) for the buffer.
+- Display formats:
+  + Absolute number of words
+  + Fraction of
+    * Count to target
+    * Region to total
+  + Dynamic color
+- Enable globally with ~global-live-wc-mode~.
+- [[*Customize][Customization]] group: ~live-wc~.
+
+* Install
+This package is not in any of the  =*= ELPAs.
+I don't know how to put it there.
+Also, I don't know /why/ I should put it there given the availability of [[https://github.com/slotThe/vc-use-package][vc-use-package]].
+
+The package may be install directly from repository using Emacs' [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html][package-vc-install]] using =vc-use-package= (or a suitable equivalent.), and configured using using Emacs' =use-package= (or a suitable equivalent).
+
+** Install vc-use-package
+Following installation code is necessary *only for* Emacs version < 30.
+    #+begin_src emacs-lisp
+    (when (version< emacs-version "30")
+      (unless (package-installed-p 'vc-use-package)
+        (package-vc-install "https://github.com/slotThe/vc-use-package"))
+      (require 'vc-use-package)))
+    #+end_src
+
+** Install and configure live-wc
+#+begin_src emacs-lisp
+  (use-package live-wc
+    :ensure t
+    :demand t
+    :vc (live-wc :url "https://gitlab.com/pradyparanjpe/live-wc.git")
+    :init
+    (global-live-wc-mode)
+    :custom
+    (live-wc-max-buffer-size 32786)  ; 32kb
+    (live-wc-fraction t)
+    (live-wc-line-pos 5))
+#+end_src
+
+* Features
+** Details
+Mouse-hover over the mode-line segment (indicator) to see details about:
+- Number of lines
+- Number of bytes (roughly equivalent to characters including spaces)
+- Absolute words-count
+- Target word-count (if set)
+
+** Interact
+- Left - Click (mouse-1) to set word-count target/cap (~live-wc-target~) for the buffer.
+- Right - Click (mouse-3) to toggle ~live-wc-fraction~ for the buffer.
+- Segment color: /live-wc/ displays colored fractions.
+  Cyan: nearer to target (100%); Red: further from target (0%).
+
+** Buffer-local
+- Set word-count target for files in a [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html][Local variables]] section of the buffer or ~.dir-locals.el~.
+#+begin_example org
+# Local Variables:
+# live-wc-fraction: t
+# live-wc-target: -4000
+# End:
+#+end_example
+
+#+begin_tip
+Negative value of ~live-wc-target~ indicates /cap/.
+When cap is set, the fraction is Red near 100%, Cyan near 0%.
+#+end_tip
+
+* Customize
+** Customization group
+~live-wc~
+
+** ~global-live-wc-modes~
+Default: ~'(text-mode)~
+
+List of modes, including all derived modes, for which, ~live-wc-mode~ is turned ON automatically when ~global-live-wc-mode~ is enabled.
+
+** ~live-wc-unbind-modes~
+Default: ~'(prog-mode dired-mode special-mode)~
+
+List of modes, including all derived modes, for which, word-count is not attempted even when ~live-wc-mode~ is enabled.
+
+** ~live-wc-idle-sec~
+Default: 1 (seconds)
+
+/Live-WC/ counters gather buffer-statistics (number of words, characters and lines) for the current buffer in the background, when Emacs is idle.
+This variable sets the frequency.
+If the gathered values are not consumed to generate /live-wc/'s mode-line segment, the counter assumes that nothing has happened since the last count, and runs =nop= (no operation).
+
+** ~live-wc-ignore-if~
+Default:
+#+begin_src emacs-lisp
+  '((:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
+    (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
+             :desc "comment (by marker)")
+    (:ignore org-at-comment-p :desc "org comment")
+    (:ignore org-at-keyword-p :desc "org keyword")
+    (:ignore org-at-table-p :desc "org table")
+    (:ignore org-at-TBLFM-p :desc "org table formula")
+    (:ignore org-at-table.el-p :desc "table.el")
+    (:ignore org-at-heading-p :desc "org heading")
+    (:ignore org-at-property-p :desc "org property")
+    (:ignore org-at-drawer-p :desc "org drawer")
+    (:ignore org-at-property-drawer-p :desc "property drawer's first line")
+    (:ignore live-wc-in-org-block-p :desc "any org block"))
+#+end_src
+
+If a line in the buffer matches any of the predicates referenced in this list, that line is skipped (ignored) from counts.
+- ~:ignore~ property refers the predicate.
+- ~:desc~ is not used, this is meant to remind the user why a predicate was added.
+
+** ~live-wc-max-buffer-size~
+Default: 15360 (bytes)
+
+Maximum size of buffer beyond which, word count is inactive.
+This is conservatively set to 15kB.
+
+** ~live-wc-line-pos~
+Default: ~most-positive-fixnum~
+
+Insert /live-wc/ count at this position on mode line.
+Indexing starts with =0=.
+This value is auto clipped between =0= and existing number of segments in the mode line.
+
+#+begin_tip
+The first two segments in the mode line are often ~%e~ and ~mode-line-front-space~.
+So, /live-wc/ added at position =2= will appear at the beginning of an ordinary mode line.
+#+end_tip
+
+** ~live-wc-abs-format~
+Default: =¶:%d=
+
+Format string for live absolute word count.
+
+** ~live-wc-frac-format~
+Default: =¶:%2.2f%%%%=
+
+Format string for live word count when expressed as a fraction (percentage).
+#+begin_warning
+Remember to sufficiently skip =%= symbols.
+#+end_warning
+
+** ~live-wc-bright~
+Default: =1.0=
+
+Brightness of /live-wc/ fraction. Interval: =[0.0, 1.0]=
+
+** ~live-wc-overflow-color~
+Default: #ff00ff
+
+Color of segment when count overflows [[*Interact][live-wc-target]].
+
+** ~live-wc-abs-count-face~
+Default: ~mode-line-active~
+
+Face of /live-wc/ when displaying absolute count.
+
+* License
+[[file:LICENSE][GNU LGPLv3]]
+
+# Local Variables:
+# live-wc-fraction: t
+# live-wc-target: -4000
+# End:

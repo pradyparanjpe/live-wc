@@ -1,0 +1,5 @@
+*.elc
+*.eln
+live-wc-autoloads.el
+*.html
+live-wc-pkg.el
