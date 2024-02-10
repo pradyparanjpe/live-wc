@@ -41,6 +41,22 @@ Else, display fraction of `live-wc-target' if set.
 Else, fallback to absolute.")
 (put 'live-wc-fraction 'safe-local-variable #'booleanp)
 
+(defvar-local live-wc-org-headline-levels
+    nil
+  "Isolate words from org subtree with heading only up to this level.
+
+Beyond this levels, headings are treated as ordinary list items.
+If nil, live-wc uses `org-export-headline-levels'")
+
+(put 'live-wc-org-headline-levels 'safe-local-variable
+     (lambda (x) (or (not x) (integerp x))))
+
+(defvar-local live-wc-narrow-to-org-subtree
+    t
+  "Narrow count to current org subtree whenever possible.")
+
+(put 'live-wc-narrow-to-org-subtree 'safe-local-variable #'booleanp)
+
 (defvar live-wc-map
   (let ((map (make-sparse-keymap)))
     (define-key map [mode-line down-mouse-1] #'live-wc-set-target)

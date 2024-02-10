@@ -29,7 +29,11 @@
 
 (defvar-local live-wc--region-stats
     nil
-  "Buffer stats for the current buffer")
+  "regions stats for the current selection")
+
+(defvar-local live-wc--org-subtree-stats
+    nil
+  "Count stats for the current org subtree")
 
 (defvar-local live-wc--mem
     'uninit
@@ -55,6 +59,7 @@ the minor mode and the globalized minor mode.")
 (dolist (internal-var
          '(live-wc--buffer-stats
            live-wc--retion-stats
+           live-wc--org-subtree-stats
            live-wc--mem
            live-wc--timers
            live-wc--enabled-buffers

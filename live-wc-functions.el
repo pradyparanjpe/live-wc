@@ -54,6 +54,7 @@ When called interactively, reset all to nil, return nil."
   (interactive)
   (setq-local live-wc--buffer-stats nil)
   (setq-local live-wc--region-stats nil)
+  (setq-local live-wc--org-subtree-stats nil)
   (setq-local live-wc--mem mem)
   mem)
 
@@ -64,7 +65,8 @@ When called interactively, reset all to nil, return nil."
     (setq
      live-wc--timers
      `(,(run-with-idle-timer live-wc-idle-sec t #'live-wc--buffer-count)
-       ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--region-count)))))
+       ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--region-count)
+       ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--org-count)))))
 
 
 (defun live-wc--cancel-timers-maybe ()
@@ -80,12 +82,64 @@ When called interactively, reset all to nil, return nil."
         (cancel-timer timer))
       (setq live-wc--timers nil))))
 
+(defun live-wc--goto-org-heading ()
+  "Move point to heading of current subtree.
+
+Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
+  (unless (org-at-heading-p)
+    (org-back-to-heading-or-point-min))
+  (while (> (or (org-current-level) 0)
+            (or live-wc-org-headline-levels
+                org-export-headline-levels))
+    (unless (= (line-number-at-pos) 1) (previous-line))
+    (org-back-to-heading-or-point-min))
+  (beginning-of-line))
+
+(defun live-wc--org-bounds ()
+  "Bounds of the current org heading.
+
+(ensure that all subtrees are counted for total words)
+Compatible with the format of function `region-bounds',
+the format is list of cons.
+The first (and only) cons is (begin-point . end-point)
+of the org heading at point.
+
+Headings at levels less than or equal to
+`live-wc-org-headline-levels', which defaults to
+`org-export-headline-levels'.
+return nil"
+  (interactive)
+  (if (not (and (featurep 'org) (derived-mode-p 'org-mode)))
+      nil
+    (if (not (org-current-level))
+        ;; Before first heading (not in org-scope)
+        nil
+      (save-mark-and-excursion
+        (let*
+            ((org-begin
+              (progn
+                (when (and (use-region-p) (< (mark) (point)))
+                  (exchange-point-and-mark))
+                ;; Now, point < mark
+                (live-wc--goto-org-heading)
+                (point)))
+             (org-end
+              (progn
+                (when (use-region-p) (exchange-point-and-mark))
+                ;; Now, mark < point
+                (live-wc--goto-org-heading)
+                (org-narrow-to-subtree)
+                (point-max))))
+          (widen)
+          `((,org-begin . ,org-end)))))))
+
 
 (defun live-wc--display ()
   ;; This function is called by mode-line again-and-again
   "Generate display string (with properties) for mode-line.
 
 Check if `live-wc--buffer-stats' are available.
+Check if `live-wc--org-subtree-stats' are available.
 Check if `live-wc--region-stats' are available.
 Compose new string based on stats.
 Set `live-wc--buffer-stats' and `live-wc--region-stats' to nil as a trigger
@@ -104,13 +158,15 @@ If new stats are unavailable, display from `live-wc--mem'"
                               live-wc--buffer-stats))
              (target (when (and live-wc-target (/= live-wc-target 0))
                        (abs live-wc-target)))
-             (num-words (alist-get 'words live-wc--buffer-stats))
+             (num-words (or (when live-wc-narrow-to-org-subtree
+                              (alist-get 'words live-wc--org-subtree-stats))
+                            (alist-get 'words live-wc--buffer-stats)))
              ;; number of words selected
              (num-select (alist-get 'words live-wc--region-stats))
              ;; count-val is either floatp (fraction), integerp
              (count-val (cond
-                         ;; Both stats are available
-                         ((and num-words num-select)
+                         ;; Both stats are available and meant to be processed
+                         ((and num-words num-select live-wc-fraction)
                           (/ (float num-select) num-words))
                          ;; Only region stats are available
                          (num-select

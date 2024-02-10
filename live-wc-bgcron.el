@@ -30,29 +30,42 @@
 (require 'live-wc-internals)
 
 
-(defun live-wc--count-text-words (&optional complete-buffer)
+(defun live-wc--count-text-words (&optional bounds)
   "Return a p-list of statistics of words in the buffer.
 
-If a region is selected and COMPLETE-BUFFER is nil, restrict to that region."
-  (let* ((num-lines 0)
-         (num-bytes 0)
-         (num-words 0)
-         (restrict (when (and (not complete-buffer) (use-region-p)) t))
-         (reg-beg (if restrict (region-beginning) (point-min)))
-         (reg-end (if restrict (region-end) (point-max))))
+BOUNDS may be nil, integer, t or compatible with
+output of function `region-bounds', a list of cons,
+each cons of the form (POINT-BEGIN . POINT-END).
+If BOUNDS is nil, return nil.
+If BOUNDS is integer, it is interpreted as `((0 . BOUNDS)).
+If BOUNDS is t, count for the full buffer.
+
+If POINT-BEGIN and POINT-END are provided, count only that region.
+If only POINT-BEGIN is provided, count from that point to the end of buffer.
+If neither is provided, count the complete buffer."
+  (when-let* ((bounds
+               (cond
+                ((listp bounds) bounds) ; assume list of cons
+                ((integerp bounds) `((,(point-min) . ,bounds)))
+                (bounds `((,(point-min) . ,(point-max))))))
+              (num-lines 0)
+              (num-bytes 0)
+              (num-words 0))
     (save-excursion
-      (goto-char reg-beg)
-      (while (< (point) reg-end)
-        ;; (beginning-of-line)
-        (when-let (((cl-notany
-                     (lambda (x) (funcall (or (plist-get x :ignore) x)))
-                     live-wc-ignore-if))
-                   (line-beg (line-beginning-position))
-                   (line-end (min (line-end-position) reg-end)))
-          (cl-incf num-lines)
-          (cl-incf num-bytes (- line-end line-beg))
-          (cl-incf num-words (count-words line-beg line-end)))
-        (forward-line 1)))
+      (dolist (region bounds)
+        (let ((point-begin (car region))
+              (point-end (cdr region)))
+          (goto-char point-begin)
+          (while (< (point) point-end)
+            (when-let (((cl-notany
+                         (lambda (x) (funcall (or (plist-get x :ignore) x)))
+                         live-wc-ignore-if))
+                       (line-beg (max (line-beginning-position) point-begin))
+                       (line-end (min (line-end-position) point-end)))
+              (unless (= line-beg line-end) (cl-incf num-lines))
+              (cl-incf num-bytes (- line-end line-beg))
+              (cl-incf num-words (count-words line-beg line-end)))
+            (forward-line 1)))))
     `((lines . ,num-lines) (bytes . ,num-bytes) (words . ,num-words))))
 
 
@@ -65,6 +78,22 @@ If a region is selected and COMPLETE-BUFFER is nil, restrict to that region."
    (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
 
 
+(defun live-wc--size-ok-p (bounds)
+  "Size of scope can be handled.
+
+Returns t only if size (cumulative if region) of scope is less than
+`live-wc-max-buffer-size'.
+
+BOUNDS is same parameter/format as accepted by `live-wc--count-text-words'"
+  (cond ((integerp bounds) (> live-wc-max-buffer-size (- bounds (point-min))))
+        ((listp bounds)
+         (> live-wc-max-buffer-size
+            (seq-reduce (lambda (y x)
+                          (+ y (- (cdr x) (car x))))
+                        bounds 0)))
+        (bounds (> live-wc-max-buffer-size (- (point-max) (point-min))))))
+
+
 (defun live-wc--buffer-count ()
   "Stats for buffer counts.
 
@@ -72,7 +101,7 @@ Evaluated as a background process."
   (setq-local live-wc--buffer-stats
               (when (and (live-wc--should-count-p)
                          (not live-wc--buffer-stats)
-                         (< (buffer-size) live-wc-max-buffer-size))
+                         (live-wc--size-ok-p t))
                 (live-wc--count-text-words t))))
 
 
@@ -81,12 +110,24 @@ Evaluated as a background process."
 
 Evaluated as a background process."
   (setq-local live-wc--region-stats
-              (when (and (live-wc--should-count-p)
-                         (not live-wc--region-stats)
-                         (use-region-p)
-                         (< (- (region-end) (region-beginning))
-                            live-wc-max-buffer-size))
-                (live-wc--count-text-words))))
+              (when-let* (((live-wc--should-count-p))
+                          ((not live-wc--region-stats))
+                          ((use-region-p))
+                          (selection (region-bounds))
+                          (live-wc--size-ok-p selection))
+                (live-wc--count-text-words selection))))
+
+
+(defun live-wc--org-count ()
+  "Stats for Org-mode subtree.
+
+Evaluated as a background process."
+  (setq-local live-wc--org-subtree-stats
+              (when-let* (((live-wc--should-count-p))
+                          ((not live-wc--org-subtree-stats))
+                          (org-bounds (live-wc--org-bounds))
+                          ((live-wc--size-ok-p org-bounds)))
+                (live-wc--count-text-words org-bounds))))
 
 
 (provide 'live-wc-bgcron)
