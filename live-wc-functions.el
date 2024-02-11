@@ -105,9 +105,12 @@ If new stats are unavailable, display from `live-wc--mem'"
                           (/ (float num-select) num-words))
                          ;; Only region stats are available
                          (num-select
-                          (if target (/ (float num-select) target) num-select))
+                          (if (and target live-wc-fraction)
+                              (/ (float num-select) target)
+                            num-select))
                          ;; Only buffer stats are available
-                         (t (if target (/ (float num-words) target)
+                         (t (if (and target live-wc-fraction)
+                                (/ (float num-words) target)
                               num-words))))
              (text (if (floatp count-val)
                        (format live-wc-frac-format (* 100 count-val))

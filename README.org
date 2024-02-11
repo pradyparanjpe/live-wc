@@ -63,7 +63,7 @@ Following installation code is necessary *only for* Emacs version < 30.
 - Hover to see details about:
   - Number of lines (non-blank)
   - Number of bytes (roughly equivalent to characters including spaces)
-  - Absolute words-count
+  - Absolute words-count of the buffer.
   - Target word-count (if set)
 
 * Buffer-locals
