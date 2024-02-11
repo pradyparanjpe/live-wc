@@ -60,9 +60,14 @@
     (:ignore org-at-property-p :desc "org property")
     (:ignore org-at-drawer-p :desc "org drawer")
     (:ignore org-at-property-drawer-p :desc "property drawer's first line")
-    (:ignore live-wc-in-org-block-p :desc "any org block"))
+    (:ignore live-wc-org-block-range :desc "any org block"))
 
-  "Where any of the functions returns non-nil, ignore the line."
+  "Where any of the functions returns non-nil, ignore the line.
+
+Specifically, if the function returns
+  - an integer: jump next to that point (+1).
+  - cons cell: jump next to its cdr
+  - any other non-nil: forward 1 line."
   :type '(repeat (choice (function :tag "predicate")
                          (plist ((const :ignore) (function :tag "predicate"))
                                 ((const :desc) (string :tag "description")))))

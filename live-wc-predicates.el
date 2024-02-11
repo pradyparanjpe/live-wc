@@ -25,7 +25,7 @@
 
 ;;; Code:
 
-(defun live-wc-in-org-block-p ()
+(defun live-wc-org-block-range ()
   "Return non-nil if inside any block.
 
 Does not necessitate Org \=Special\= Block.
@@ -54,11 +54,11 @@ Under the function named \=modi/org-in-any-block-p\=.
                (goto-char (match-end 0))
                (re-search-forward block-end-re limit-down :noerror))
              (> (setq end (match-end 0)) pos)
-        ;; ... without another BLOCK-BEGIN-RE in-between.
-        (goto-char (match-beginning 0))
-        (not (re-search-backward block-begin-re (1+ beg) :noerror))
-        ;; Return value.
-        (cons beg end))))))
+             ;; ... without another BLOCK-BEGIN-RE in-between.
+             (goto-char (match-beginning 0))
+             (not (re-search-backward block-begin-re (1+ beg) :noerror))
+             ;; Return value.
+             (cons beg end))))))
 
 (provide 'live-wc-predicates)
 ;;; live-wc-predicates.el ends here
