@@ -57,6 +57,13 @@
 
 
 ;;;###autoload
+(defun live-wc-toggle-unmodified ()
+  "Toggle `live-wc-update-unmodified'"
+  (interactive)
+  (setq-local live-wc-update-unmodified (not live-wc-update-unmodified)))
+
+
+;;;###autoload
 (defun live-wc-refresh ()
   "Refresh (local) mode-line display segment"
   (interactive)
@@ -73,10 +80,11 @@
 
 (defvar live-wc-keymap
   (let ((map (make-sparse-keymap "live-wc")))
-    (define-key map (kbd "r") #'live-wc-refresh)
-    (define-key map (kbd "t") #'live-wc-set-target)
     (define-key map (kbd "f") #'live-wc-toggle-format)
+    (define-key map (kbd "r") #'live-wc-refresh)
     (define-key map (kbd "s") #'live-wc-toggle-subtree)
+    (define-key map (kbd "t") #'live-wc-set-target)
+    (define-key map (kbd "u") #'live-wc-toggle-unmodified)
     map)
   "Keymap to display on word-count indicator.")
 

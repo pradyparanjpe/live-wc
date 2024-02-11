@@ -41,7 +41,9 @@
   (and
    live-wc-mode
    (mode-line-window-selected-p)
-   ;; (or (buffer-modified-p) (equal live-wc--mem 'uninit))
+   (or live-wc-update-unmodified
+       (buffer-modified-p)
+       (equal live-wc--mem 'uninit))
    (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
 
 

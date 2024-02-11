@@ -64,5 +64,11 @@ If nil, live-wc uses `org-export-headline-levels'")
 (put 'live-wc-narrow-to-org-subtree 'safe-local-variable #'booleanp)
 
 
+(defvar-local live-wc-update-unmodified nil
+
+  "Update word counts even when buffer is unmodified.")
+
+(put 'live-wc-update-unmodified 'safe-local-variable #'booleanp)
+
 (provide 'live-wc-locals)
 ;;; live-wc-locals.el ends here

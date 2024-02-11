@@ -83,7 +83,8 @@ Store current stats in memory `live-wc--mem'.
 If new stats are unavailable, display from `live-wc--mem'"
   (when (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)
     (if (not (or live-wc--region-stats
-                 live-wc--buffer-stats live-wc--org-subtree-stats))
+                 live-wc--buffer-stats live-wc--org-subtree-stats
+                 (equal live-wc--mem 'uninit)))
         ;; from memory
         live-wc--mem
       ;; calculate
