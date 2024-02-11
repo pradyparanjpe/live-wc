@@ -11,8 +11,12 @@ Features
 - Face color of mode-line display changes according to the fraction.
 - Restrict word count to region if selected, optionally,
   show as fraction of total.
+- Optionally, restrict word count to org-subtree using
+  `live-wc-narrow-to-org-subtree'.
 - Hover (mouse) over the segment for some more details.
 - Mouse-click to set target/fraction.
+- Bind keymap `live-wc-keymap' prefix to a suitable keybinding to access
+  pre-bound commands that toggle/set buffer-local variables.
 
 Minor mode
 ----------------

@@ -29,7 +29,7 @@
 (defvar-local live-wc-target nil
   "Targetted number of (text) words to write in buffer.
 
-If non-nil, `live-wc-do-count' will use this as the \=TARGET\=.
+Word-count target for the buffer.
 Value \=0\= is interpreted as nil.
 If the value is negative, it is interpreted as \=CAP\= (upper limit).")
 
@@ -64,8 +64,8 @@ If nil, live-wc uses `org-export-headline-levels'")
 (put 'live-wc-narrow-to-org-subtree 'safe-local-variable #'booleanp)
 
 
-(defvar-local live-wc-update-unmodified nil
-
+(defvar-local live-wc-update-unmodified
+    nil
   "Update word counts even when buffer is unmodified.")
 
 (put 'live-wc-update-unmodified 'safe-local-variable #'booleanp)

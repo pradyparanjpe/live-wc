@@ -29,7 +29,7 @@ This package is not in any of the  =*= ELPAs.
 I don't know how to put it there.
 Also, I don't know /why/ I should put it there given the availability of [[https://github.com/slotThe/vc-use-package][vc-use-package]].
 
-The package may be install directly from repository using Emacs' [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html][package-vc-install]] using =vc-use-package= (or a suitable equivalent.), and configured using using Emacs' =use-package= (or a suitable equivalent).
+The package may be installed directly from repository using Emacs' [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html][package-vc-install]] using =vc-use-package= (or a suitable equivalent.), and configured using using Emacs' =use-package= (or a suitable equivalent).
 I might add this to =MELPA= in future.
 
 ** Install vc-use-package
@@ -55,23 +55,20 @@ Following installation code is necessary *only for* Emacs version < 30.
     (live-wc-line-pos 5))
 #+end_src
 
-* Features
-** Details
-Mouse-hover over the mode-line segment (indicator) to see details about:
-- Number of lines (non-blank)
-- Number of bytes (roughly equivalent to characters including spaces)
-- Absolute words-count
-- Target word-count (if set)
+* Mode line indicator segment
+- Mode-line indicator segment color: fractions are colored according to value.
+  Cyan: nearer to target (100%); Red: further from target (0%).
+- Left - Click (mouse-1) to set word-count target/cap [[*~live-wc-target~][live-wc-target]] for the buffer.
+- Right - Click (mouse-3) to toggle [[*~live-wc-fraction~][live-wc-fraction]] for the buffer.
+- Hover to see details about:
+  - Number of lines (non-blank)
+  - Number of bytes (roughly equivalent to characters including spaces)
+  - Absolute words-count
+  - Target word-count (if set)
 
-** Interact
-- ~live-wc-mode-map~ (inactive, unbound) with keybindings to toggle local variables.
-- Left - Click (mouse-1) to set word-count target/cap (~live-wc-target~) for the buffer.
-- Right - Click (mouse-3) to toggle ~live-wc-fraction~ for the buffer.
-- Segment color: /live-wc/ displays colored fractions.
-  {{{c(cyan,Cyan)}}}: nearer to target (100%); {{{c(red,Red)}}}: further from target (0%).
+* Buffer-locals
+- Following variables may be set locally for buffers in a [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html][Local variables]] section:
 
-** Buffer-local
-- Set word-count target for files in a [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html][Local variables]] section of the buffer or ~.dir-locals.el~.
 #+begin_example org
 # Local Variables:
 # live-wc-fraction: t
@@ -79,10 +76,47 @@ Mouse-hover over the mode-line segment (indicator) to see details about:
 # End:
 #+end_example
 
-#+begin_tip
-Negative value of ~live-wc-target~ indicates /cap/.
+** ~live-wc-target~
+Default: =nil=
+
+Set word-count target.
+Value =0= is considered same as =nil= (unset).
+Negative value indicates /cap/.
 When cap is set, the fraction is Red near 100%, Cyan near 0%.
-#+end_tip
+
+** ~live-wc-narrow-to-org-subtree~
+Default: =t=
+
+Narrow count to current org subtree whenever possible.
+When inside an org-heading, restrict the word-count to that heading.
+
+** ~live-wc-org-headline-levels~
+Default: =nil=
+
+Org headings up to this level are considered true /headings/ for word-count restriction.
+Beyond this level, org-headings are regarded as list-items.
+If value is =nil=, it is derived from ~org-export-headline-levels~.
+
+** ~live-wc-fraction~
+Default: =t=
+
+When possible, display word count as fraction percent, otherwise, display absolute (raw) number.
+
+It is possible to display wc as fraction when:
+- Region is selected (region / word-count)
+- [[*~live-wc-target~][Target]] is set. (word-count / Target)
+
+"Word count" for this calculation respects the setting for [[*~live-wc-narrow-to-org-subtree~][live-wc-narrow-to-org-subtree]].
+
+** ~live-wc-update-unmodified~
+Default: =nil=
+
+Ordinarily, /live-wc/ counters would run only once when a new buffer is opened and run =nop= (no operation) to conserve CPU unless the buffer gets modified.
+However, this could be undesirable when /live-wc/ is begin used to navigate the buffer without modifying it, to count words in various org subtrees.
+When ~live-wc-update-unmodified~ is =t=, the counters run even when the buffer is unmodified, obviously at the cost of CPU.
+
+# ** Source
+# #+INCLUDE: live-wc-locals.el src emacs-lisp
 
 * Customize
 ** Customization group
@@ -108,7 +142,9 @@ If the gathered values are not consumed to generate /live-wc/'s mode-line segmen
 ** ~live-wc-ignore-if~
 Default:
 #+begin_src emacs-lisp
-  '((:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
+  '((:ignore (lambda () (= (line-beginning-position) (line-end-position)))
+             :desc "blank lines")
+    (:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
     (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
              :desc "comment (by marker)")
     (:ignore org-at-comment-p :desc "org comment")
@@ -120,7 +156,7 @@ Default:
     (:ignore org-at-property-p :desc "org property")
     (:ignore org-at-drawer-p :desc "org drawer")
     (:ignore org-at-property-drawer-p :desc "property drawer's first line")
-    (:ignore live-wc-in-org-block-p :desc "any org block"))
+    (:ignore live-wc-org-block-range :desc "any org block"))
 #+end_src
 
 If a line in the buffer matches any of the predicates referenced in this list, that line is skipped (ignored) from counts.
@@ -166,17 +202,43 @@ Brightness of /live-wc/ fraction. Interval: =[0.0, 1.0]=
 ** ~live-wc-overflow-color~
 Default: #ff00ff
 
-Color of segment when count overflows [[*Interact][live-wc-target]].
+Color of segment when count overflows [[*~live-wc-target~][live-wc-target]].
 
 ** ~live-wc-abs-count-face~
 Default: ~mode-line-active~
 
 Face of /live-wc/ when displaying absolute count.
 
+# ** Source
+# #+INCLUDE: live-wc-custom.el src emacs-lisp
+
+* Interactive commands
+** ~live-wc-set-target~
+Set word count [[*~live-wc-target~][target]] for the buffer.
+
+** ~live-wc-toggle-format~
+Toggle fraction/absolute word count [[*~live-wc-frac-format~][format]] for the buffer.
+
+** ~live-wc-toggle-subtree~
+Toggle [[*~live-wc-narrow-to-org-subtree~][subtree counts]] for the buffer.
+
+** ~live-wc-toggle-unmodified~
+Toggle state of [[*~live-wc-update-unmodified~][live-wc-update-unmodified]].
+
+** ~live-wc-refresh~
+Attempt to refresh word counts.
+
+** =live-wc-keymap=
+An unbound keymap within which, key-presses are bound to all above interactive commands.
+
+# ** Source
+# #+INCLUDE: live-wc-commands.el src emacs-lisp
+
 * License
 [[file:LICENSE][GNU LGPLv3]]
 
+# #+INCLUDE: LICENSE src
 # Local Variables:
 # live-wc-fraction: t
-# live-wc-target: -4000
+# live-wc-target: -1000
 # End:
