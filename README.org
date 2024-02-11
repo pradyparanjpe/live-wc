@@ -109,11 +109,15 @@ It is possible to display wc as fraction when:
 "Word count" for this calculation respects the setting for [[*~live-wc-narrow-to-org-subtree~][live-wc-narrow-to-org-subtree]].
 
 ** ~live-wc-update-unmodified~
-Default: =nil=
+Default: =t=
 
-Ordinarily, /live-wc/ counters would run only once when a new buffer is opened and run =nop= (no operation) to conserve CPU unless the buffer gets modified.
-However, this could be undesirable when /live-wc/ is begin used to navigate the buffer without modifying it, to count words in various org subtrees.
-When ~live-wc-update-unmodified~ is =t=, the counters run even when the buffer is unmodified, obviously at the cost of CPU.
+Ordinarily, /live-wc/ counters would continue collecting statistics [[*~live-wc-idle-sec~][periodically]] when Emacs is idle.
+However, if this starts causing unwanted CPU load (because the file size/complexity), ~live-wc-update-unmodified~ may be set to =nil=.
+/Live-wc/ counters will then collect statistics only once in the beginning when a new buffer is opened and run =nop= (no operation) to conserve CPU and periodically when the buffer gets [[info:elisp#buffer-modified-p][modified]].
+
+#+begin_warning
+Setting to =nil= could be undesirable when /live-wc/ is used to navigate the buffer without modifying it, to count words in various org subtrees.
+#+end_warning
 
 # ** Source
 # #+INCLUDE: live-wc-locals.el src emacs-lisp

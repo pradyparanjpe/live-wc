@@ -65,7 +65,7 @@ If nil, live-wc uses `org-export-headline-levels'")
 
 
 (defvar-local live-wc-update-unmodified
-    nil
+    t
   "Update word counts even when buffer is unmodified.")
 
 (put 'live-wc-update-unmodified 'safe-local-variable #'booleanp)
