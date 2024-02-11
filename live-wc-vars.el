@@ -1,4 +1,4 @@
-;;; live-wc-bgcron.el --- variables -*- lexical-binding: t; -*-
+;;; live-wc-vars.el --- internal vars -*- lexical-binding: t; -*-
 
 ;; Copyright © 2024 Pradyumna Paranjape.
 
@@ -7,8 +7,6 @@
 
 ;; This file is NOT part of GNU Emacs.
 ;; This file is a part of live-wc
-;; Some parts of this file were borrowed from PSPMacs
-;; PSPMACS URL: https://www.gitlab.com/pradyparanjpe/pspmacs
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU Lesser General Public License as published by
@@ -25,44 +23,56 @@
 
 ;;; Code:
 
-(defvar-local live-wc-target nil
-  "Targetted number of (text) words to write in buffer.
 
-If non-nil, `live-wc-do-count' will use this as the \=TARGET\=.
-Value \=0\= is interpreted as nil.
-If the value is negative, it is interpreted as \=CAP\= (upper limit).")
-(put 'live-wc-target 'safe-local-variable #'numberp)
-
-(defvar-local live-wc-fraction t
-  "If non-nil and if possible, show value as a fraction.
-
-If region is selected, display fraction of all the text.
-Else, display fraction of `live-wc-target' if set.
-Else, fallback to absolute.")
-(put 'live-wc-fraction 'safe-local-variable #'booleanp)
-
-(defvar-local live-wc-org-headline-levels
+(defvar-local live-wc--buffer-stats
     nil
-  "Isolate words from org subtree with heading only up to this level.
+  "Buffer stats for the current buffer")
 
-Beyond this levels, headings are treated as ordinary list items.
-If nil, live-wc uses `org-export-headline-levels'")
 
-(put 'live-wc-org-headline-levels 'safe-local-variable
-     (lambda (x) (or (not x) (integerp x))))
+(defvar-local live-wc--region-stats
+    nil
+  "regions stats for the current selection")
 
-(defvar-local live-wc-narrow-to-org-subtree
-    t
-  "Narrow count to current org subtree whenever possible.")
 
-(put 'live-wc-narrow-to-org-subtree 'safe-local-variable #'booleanp)
+(defvar-local live-wc--org-subtree-stats
+    nil
+  "Count stats for the current org subtree")
 
-(defvar live-wc-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line down-mouse-1] #'live-wc-set-target)
-    (define-key map [mode-line down-mouse-3] #'live-wc-toggle-format)
-    map)
-  "Keymap to display on word-count indicator.")
+
+(defvar-local live-wc--mem
+    'uninit
+  "Memory of displayed value for reuse (esp. while nothing changes)")
+
+
+(defvar-local live-wc--line-seg
+    '(:eval (live-wc--display))
+  "Display live word count from `live-word-count-mode'")
+
+
+(defvar live-wc--timers nil
+
+  "Handle for live-wc timers
+
+For future removal from idle run `timer-idle-list'.
+This is not a local variable. It is used by both,
+the minor mode and the globalized minor mode.")
+
+
+(defvar live-wc--enabled-buffers nil
+
+  "A list of buffers for which, live-wc-mode is enabled.")
+
+
+(dolist (internal
+         '(live-wc--buffer-stats
+           live-wc--retion-stats
+           live-wc--org-subtree-stats
+           live-wc--mem
+           live-wc--line-seg
+           live-wc--timers
+           live-wc--enabled-buffers))
+  (put internal 'risky-local-variable t))
+
 
 (provide 'live-wc-vars)
 ;;; live-wc-vars.el ends here

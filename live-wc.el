@@ -4,7 +4,7 @@
 
 ;; Author: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
 ;; URL: https://www.gitlab.com/pradyparanjpe/live-wc
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -25,12 +25,13 @@
 
 ;;; Code:
 
+(require 'live-wc-vars)
 (require 'live-wc-predicates)
 (require 'live-wc-custom)
-(require 'live-wc-vars)
-(require 'live-wc-internals)
-(require 'live-wc-colors)
+(require 'live-wc-locals)
 (require 'live-wc-functions)
+(require 'live-wc-commands)
+(require 'live-wc-colors)
 (require 'live-wc-bgcron)
 (require 'live-wc-mmode)
 (require 'live-wc-global-mmode)

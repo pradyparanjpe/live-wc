@@ -46,7 +46,9 @@
 (require 'live-wc-predicates)
 
 (defcustom live-wc-ignore-if
-  '((:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
+  '((:ignore (lambda () (= (line-beginning-position) (line-end-position)))
+             :desc "blank lines")
+    (:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
     (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
              :desc "comment (by marker)")
     (:ignore org-at-comment-p :desc "org comment")

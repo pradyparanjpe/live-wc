@@ -1,4 +1,4 @@
-;;; live-wc-functions.el --- external functions -*- lexical-binding: t; -*-
+;;; live-wc-functions.el --- internal funcs -*- lexical-binding: t; -*-
 
 ;; Copyright © 2024 Pradyumna Paranjape.
 
@@ -7,8 +7,6 @@
 
 ;; This file is NOT part of GNU Emacs.
 ;; This file is a part of live-wc
-;; Some parts of this file were borrowed from PSPMacs
-;; PSPMACS URL: https://www.gitlab.com/pradyparanjpe/pspmacs
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU Lesser General Public License as published by
@@ -26,24 +24,10 @@
 ;;; Code:
 
 
-(require 'live-wc-internals)
 (require 'live-wc-vars)
-(require 'live-wc-colors)
 
-(defun live-wc-set-target ()
-  "Set value for `live-wc-target'."
-  (interactive)
-  (let ((wc-target (read-number
-                    "Set word count target:\t"
-                    (if live-wc-target (- live-wc-target) 0))))
-    (setq-local live-wc-target (if (= 0 wc-target) nil wc-target))))
 
-(defun live-wc-toggle-format ()
-  "Toggle `live-wc-fraction'."
-  (interactive)
-  (setq-local live-wc-fraction (not live-wc-fraction)))
-
-(defun live-wc-reset-stats (&optional mem)
+(defun live-wc--reset-stats (&optional mem)
   "Reset region and buffer stats, and memory.
 
 Set `live-wc--buffer-stats' `live-wc--region-stats' to nil
@@ -82,57 +66,6 @@ When called interactively, reset all to nil, return nil."
         (cancel-timer timer))
       (setq live-wc--timers nil))))
 
-(defun live-wc--goto-org-heading ()
-  "Move point to heading of current subtree.
-
-Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
-  (unless (org-at-heading-p)
-    (org-back-to-heading-or-point-min))
-  (while (> (or (org-current-level) 0)
-            (or live-wc-org-headline-levels
-                org-export-headline-levels))
-    (unless (= (line-number-at-pos) 1) (previous-line))
-    (org-back-to-heading-or-point-min))
-  (beginning-of-line))
-
-(defun live-wc--org-bounds ()
-  "Bounds of the current org heading.
-
-(ensure that all subtrees are counted for total words)
-Compatible with the format of function `region-bounds',
-the format is list of cons.
-The first (and only) cons is (begin-point . end-point)
-of the org heading at point.
-
-Headings at levels less than or equal to
-`live-wc-org-headline-levels', which defaults to
-`org-export-headline-levels'.
-return nil"
-  (interactive)
-  (if (not (and (featurep 'org) (derived-mode-p 'org-mode)))
-      nil
-    (if (not (org-current-level))
-        ;; Before first heading (not in org-scope)
-        nil
-      (save-mark-and-excursion
-        (let*
-            ((org-begin
-              (progn
-                (when (and (use-region-p) (< (mark) (point)))
-                  (exchange-point-and-mark))
-                ;; Now, point < mark
-                (live-wc--goto-org-heading)
-                (point)))
-             (org-end
-              (progn
-                (when (use-region-p) (exchange-point-and-mark))
-                ;; Now, mark < point
-                (live-wc--goto-org-heading)
-                (org-narrow-to-subtree)
-                (point-max))))
-          (widen)
-          `((,org-begin . ,org-end)))))))
-
 
 (defun live-wc--display ()
   ;; This function is called by mode-line again-and-again
@@ -149,7 +82,8 @@ Store current stats in memory `live-wc--mem'.
 
 If new stats are unavailable, display from `live-wc--mem'"
   (when (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)
-    (if (not (or live-wc--region-stats live-wc--buffer-stats))
+    (if (not (or live-wc--region-stats
+                 live-wc--buffer-stats live-wc--org-subtree-stats))
         ;; from memory
         live-wc--mem
       ;; calculate
@@ -183,12 +117,13 @@ If new stats are unavailable, display from `live-wc--mem'"
                              (when (and target (> 0 live-wc-target)) t))
                           ;; text is absolute or nil
                           'live-wc-abs-count-face)))
-        (live-wc-reset-stats
+        (live-wc--reset-stats
          (propertize
           text
           'face disp-face
-          'local-map live-wc-map
+          'local-map live-wc-seg-map
           'help-echo (concat hint (when target (format "of %d" target)))))))))
+
 
 (provide 'live-wc-functions)
 ;;; live-wc-functions.el ends here

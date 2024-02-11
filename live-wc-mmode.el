@@ -1,4 +1,4 @@
-;;; live-wc-custom.el --- minor mode -*- lexical-binding: t; -*-
+;;; live-wc-mmode.el --- minor mode -*- lexical-binding: t; -*-
 
 ;; Copyright © 2024 Pradyumna Paranjape.
 
@@ -23,9 +23,10 @@
 
 ;;; Code:
 
+
+(require 'live-wc-vars)
 (require 'live-wc-custom)
 (require 'live-wc-functions)
-(require 'live-wc-internals)
 
 
 (defun live-wc--modify-buffer-mode-line ()
@@ -81,6 +82,7 @@ Reset to the value of `live-wc--original-default-mode-line' if non-nil."
 When live-word-count-mode is ON, `live-wc--line-seg'
 displays current wc value, nil otherwise."
   :lighter " live-wc"
+  :keymap nil
   :group 'live-wc
   (if live-wc-mode
       (live-wc--enable)

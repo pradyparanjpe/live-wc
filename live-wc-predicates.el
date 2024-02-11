@@ -1,4 +1,4 @@
-;;; live-wc-bgcron.el --- test-predicates -*- lexical-binding: t; -*-
+;;; live-wc-predicates.el --- test-predicates -*- lexical-binding: t; -*-
 
 ;; Copyright © 2024 Pradyumna Paranjape.
 

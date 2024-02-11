@@ -22,12 +22,41 @@
 ;;
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+;;
+;;; Commentary
+;; Functions in this file run in the background when Emacs is idle.
+;;
 ;;; Code:
 
 
 (require 'live-wc-custom)
-(require 'live-wc-internals)
+(require 'live-wc-vars)
+(require 'live-wc-locals)
+(require 'live-wc-colors)
+(require 'live-wc-functions)
+
+
+(defun live-wc--should-count-p ()
+  "Should live-wc even count?"
+  (and
+   live-wc-mode
+   (mode-line-window-selected-p)
+   ;; (or (buffer-modified-p) (equal live-wc--mem 'uninit))
+   (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
+
+
+(defun live-wc--size-ok-p (bounds)
+  "Size of scope can be handled.
+
+Returns t only if size (cumulative if region) of scope is less than
+`live-wc-max-buffer-size'.
+
+BOUNDS is same parameter/format as accepted by `live-wc--count-text-words'"
+  (cond ((integerp bounds) (> live-wc-max-buffer-size (- bounds (point-min))))
+        ((listp bounds)
+         (> live-wc-max-buffer-size
+            (seq-reduce (lambda (y x) (+ y (- (cdr x) (car x)))) bounds 0)))
+        (bounds (> live-wc-max-buffer-size (- (point-max) (point-min))))))
 
 
 (defun live-wc--count-text-words (&optional bounds)
@@ -43,55 +72,81 @@ If BOUNDS is t, count for the full buffer.
 If POINT-BEGIN and POINT-END are provided, count only that region.
 If only POINT-BEGIN is provided, count from that point to the end of buffer.
 If neither is provided, count the complete buffer."
-  (when-let* ((bounds
-               (cond
-                ((listp bounds) bounds) ; assume list of cons
-                ((integerp bounds) `((,(point-min) . ,bounds)))
-                (bounds `((,(point-min) . ,(point-max))))))
-              (num-lines 0)
-              (num-bytes 0)
-              (num-words 0))
+  (when-let*
+      ((bounds
+        (cond
+         ((listp bounds) bounds) ; assume list of cons
+         ((integerp bounds) `((,(point-min) . ,bounds)))
+         (bounds `((,(point-min) . ,(point-max))))))
+       (num-lines 0) (num-bytes 0) (num-words 0))
     (save-excursion
       (dolist (region bounds)
         (let ((point-begin (car region))
               (point-end (cdr region)))
           (goto-char point-begin)
           (while (< (point) point-end)
-            (when-let (((cl-notany
-                         (lambda (x) (funcall (or (plist-get x :ignore) x)))
-                         live-wc-ignore-if))
+            (when-let (((cl-notany (lambda (x)
+                                     (funcall (or (plist-get x :ignore) x)))
+                                   live-wc-ignore-if))
                        (line-beg (max (line-beginning-position) point-begin))
                        (line-end (min (line-end-position) point-end)))
-              (unless (= line-beg line-end) (cl-incf num-lines))
+              (cl-incf num-lines)
               (cl-incf num-bytes (- line-end line-beg))
               (cl-incf num-words (count-words line-beg line-end)))
             (forward-line 1)))))
     `((lines . ,num-lines) (bytes . ,num-bytes) (words . ,num-words))))
 
 
-(defun live-wc--should-count-p ()
-  "Should live-wc even count?"
-  (and
-   live-wc-mode
-   (mode-line-window-selected-p)
-   (or (buffer-modified-p) (equal live-wc--mem 'uninit))
-   (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
+(defun live-wc--goto-org-heading ()
+  "Move point to heading of current subtree.
 
+Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
+  (unless (org-at-heading-p)
+    (org-back-to-heading-or-point-min))
+  (while (> (or (org-current-level) 0)
+            (or live-wc-org-headline-levels
+                org-export-headline-levels))
+    (unless (= (line-number-at-pos) 1) (previous-line))
+    (org-back-to-heading-or-point-min))
+  (beginning-of-line))
 
-(defun live-wc--size-ok-p (bounds)
-  "Size of scope can be handled.
+(defun live-wc--org-bounds ()
+  "Bounds of the current org heading.
 
-Returns t only if size (cumulative if region) of scope is less than
-`live-wc-max-buffer-size'.
+(ensure that all subtrees are counted for total words)
+Compatible with the format of function `region-bounds',
+the format is list of cons.
+The first (and only) cons is (begin-point . end-point)
+of the org heading at point.
 
-BOUNDS is same parameter/format as accepted by `live-wc--count-text-words'"
-  (cond ((integerp bounds) (> live-wc-max-buffer-size (- bounds (point-min))))
-        ((listp bounds)
-         (> live-wc-max-buffer-size
-            (seq-reduce (lambda (y x)
-                          (+ y (- (cdr x) (car x))))
-                        bounds 0)))
-        (bounds (> live-wc-max-buffer-size (- (point-max) (point-min))))))
+Headings at levels less than or equal to
+`live-wc-org-headline-levels', which defaults to
+`org-export-headline-levels'.
+return nil"
+  (interactive)
+  (if (not (and (featurep 'org) (derived-mode-p 'org-mode)))
+      nil
+    (if (not (org-current-level))
+        ;; Before first heading (not in org-scope)
+        nil
+      (save-mark-and-excursion
+        (let*
+            ((org-begin
+              (progn
+                (when (and (use-region-p) (< (mark) (point)))
+                  (exchange-point-and-mark))
+                ;; Now, point < mark
+                (live-wc--goto-org-heading)
+                (point)))
+             (org-end
+              (progn
+                (when (use-region-p) (exchange-point-and-mark))
+                ;; Now, mark < point
+                (live-wc--goto-org-heading)
+                (org-narrow-to-subtree)
+                (point-max))))
+          (widen)
+          `((,org-begin . ,org-end)))))))
 
 
 (defun live-wc--buffer-count ()
@@ -124,6 +179,7 @@ Evaluated as a background process."
 Evaluated as a background process."
   (setq-local live-wc--org-subtree-stats
               (when-let* (((live-wc--should-count-p))
+                          (live-wc-narrow-to-org-subtree)
                           ((not live-wc--org-subtree-stats))
                           (org-bounds (live-wc--org-bounds))
                           ((live-wc--size-ok-p org-bounds)))

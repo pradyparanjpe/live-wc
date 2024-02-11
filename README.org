@@ -1,5 +1,6 @@
 #+title: Live Word Count
 #+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-readtheorg.setup
+#+MACRO: c @@html:<font color="$1">$2</font>@@
 #+AUTHOR: Pradyumna Swanand Paranjape
 #+EMAIL: pradyparanjpe@rediffmail.com
 #+property: header-args :tangle no :mkdirp t :results no :eval never
@@ -21,6 +22,7 @@
   + Dynamic color
 - Enable globally with ~global-live-wc-mode~.
 - [[*Customize][Customization]] group: ~live-wc~.
+- Mode map ~live-wc-mode-map~.
 
 * Install
 This package is not in any of the  =*= ELPAs.
@@ -28,14 +30,15 @@ I don't know how to put it there.
 Also, I don't know /why/ I should put it there given the availability of [[https://github.com/slotThe/vc-use-package][vc-use-package]].
 
 The package may be install directly from repository using Emacs' [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html][package-vc-install]] using =vc-use-package= (or a suitable equivalent.), and configured using using Emacs' =use-package= (or a suitable equivalent).
+I might add this to =MELPA= in future.
 
 ** Install vc-use-package
 Following installation code is necessary *only for* Emacs version < 30.
     #+begin_src emacs-lisp
-    (when (version< emacs-version "30")
-      (unless (package-installed-p 'vc-use-package)
-        (package-vc-install "https://github.com/slotThe/vc-use-package"))
-      (require 'vc-use-package)))
+      (when (version< emacs-version "30")
+        (unless (package-installed-p 'vc-use-package)
+          (package-vc-install "https://github.com/slotThe/vc-use-package"))
+        (require 'vc-use-package)))
     #+end_src
 
 ** Install and configure live-wc
@@ -55,16 +58,17 @@ Following installation code is necessary *only for* Emacs version < 30.
 * Features
 ** Details
 Mouse-hover over the mode-line segment (indicator) to see details about:
-- Number of lines
+- Number of lines (non-blank)
 - Number of bytes (roughly equivalent to characters including spaces)
 - Absolute words-count
 - Target word-count (if set)
 
 ** Interact
+- ~live-wc-mode-map~ (inactive, unbound) with keybindings to toggle local variables.
 - Left - Click (mouse-1) to set word-count target/cap (~live-wc-target~) for the buffer.
 - Right - Click (mouse-3) to toggle ~live-wc-fraction~ for the buffer.
 - Segment color: /live-wc/ displays colored fractions.
-  Cyan: nearer to target (100%); Red: further from target (0%).
+  {{{c(cyan,Cyan)}}}: nearer to target (100%); {{{c(red,Red)}}}: further from target (0%).
 
 ** Buffer-local
 - Set word-count target for files in a [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html][Local variables]] section of the buffer or ~.dir-locals.el~.

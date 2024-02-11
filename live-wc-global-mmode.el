@@ -24,6 +24,7 @@
 ;;; Code:
 
 
+(require 'live-wc-vars)
 (require 'live-wc-functions)
 (require 'live-wc-mmode)
 
