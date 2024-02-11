@@ -90,15 +90,22 @@ If neither is provided, count the complete buffer."
             (let ((non-text (cl-some (lambda (x)
                                        (funcall (or (plist-get x :ignore) x)))
                                      live-wc-ignore-if)))
-              (cond ((consp non-text) (goto-char (1+ (cdr non-text))))
-                    ((integerp non-text) (goto-char (1+ non-text)))
-                    (non-text (forward-line 1))
-                    (t (let ((line-beg (max (line-beginning-position) point-begin))
-                             (line-end (min (line-end-position) point-end)))
-                         (cl-incf num-lines)
-                         (cl-incf num-bytes (- line-end line-beg))
-                         (cl-incf num-words (count-words line-beg line-end))
-                         (forward-line 1)))))))))
+              (unless non-text
+                (let ((line-beg (max (line-beginning-position)
+                                     point-begin))
+                      (line-end (min (line-end-position) point-end)))
+                  (cl-incf num-lines)
+                  (cl-incf num-bytes (- line-end line-beg))
+                  (cl-incf num-words (count-words line-beg line-end))))
+              (forward-line 1)
+
+              ;; Skip all next non-code lines
+              (cond ((consp non-text)
+                     (when (> (point) (cdr non-text))
+                       (goto-char (1+ (cdr non-text)))))
+                    ((integerp non-text)
+                     (when (> (point) non-text)
+                       (goto-char (1+ non-text))))))))))
     `((lines . ,num-lines) (bytes . ,num-bytes) (words . ,num-words))))
 
 
