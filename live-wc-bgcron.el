@@ -118,7 +118,7 @@ Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
   (while (> (or (org-current-level) 0)
             (or live-wc-org-headline-levels
                 org-export-headline-levels))
-    (unless (= (line-number-at-pos) 1) (previous-line))
+    (unless (= (line-number-at-pos) 1) (forward-line -1))
     (org-back-to-heading-or-point-min))
   (beginning-of-line))
 

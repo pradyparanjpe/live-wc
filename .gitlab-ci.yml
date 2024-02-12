@@ -1,0 +1,17 @@
+stages:
+- docs
+
+pages:
+  image: "alpine:latest"
+  stage: docs
+  before_script:
+  - export PATH="${PATH}:${HOME}/.local/bin"
+  - mkdir -p public
+  script:
+  - cp live-wc.html public/index.html
+  artifacts:
+    paths:
+    - public
+  only:
+    refs:
+    - release

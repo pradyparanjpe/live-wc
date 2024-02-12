@@ -5,7 +5,10 @@
 #+EMAIL: pradyparanjpe@rediffmail.com
 #+property: header-args :tangle no :mkdirp t :results no :eval never
 #+OPTIONS: _:{}
-#+EXPORT_FILE_NAME: index.html
+#+EXPORT_FILE_NAME: live-wc.html
+#+TEXINFO_DIR_CATEGORY: Emacs
+#+TEXINFO_DIR_TITLE: Live word count
+#+TEXINFO_DIR_DESC: Count text words in real time
 
 * Goals
 - Minor mode ~live-wc-mode~ displays live word count in mode-line.
@@ -53,6 +56,13 @@ Following installation code is necessary *only for* Emacs version < 30.
     (live-wc-max-buffer-size 32786)  ; 32kb
     (live-wc-fraction t)
     (live-wc-line-pos 5))
+#+end_src
+
+** Melpa recipe                                                     :noexport:
+#+begin_src emacs-lisp
+  (live-wc
+   :fetcher gitlab
+   :repo "pradyparanjpe/live-wc")
 #+end_src
 
 * Mode line indicator segment
@@ -115,12 +125,11 @@ Ordinarily, /live-wc/ counters would continue collecting statistics [[*~live-wc-
 However, if this starts causing unwanted CPU load (because the file size/complexity), ~live-wc-update-unmodified~ may be set to =nil=.
 /Live-wc/ counters will then collect statistics only once in the beginning when a new buffer is opened and run =nop= (no operation) to conserve CPU and periodically when the buffer gets [[info:elisp#buffer-modified-p][modified]].
 
-#+begin_warning
+#+ATTR_TEXINFO: :tag Warning
+#+ATTR_HTML: :tag Warning
+#+begin_quote
 Setting to =nil= could be undesirable when /live-wc/ is used to navigate the buffer without modifying it, to count words in various org subtrees.
-#+end_warning
-
-# ** Source
-# #+INCLUDE: live-wc-locals.el src emacs-lisp
+#+end_quote
 
 * Customize
 ** Customization group
@@ -180,10 +189,12 @@ Insert /live-wc/ count at this position on mode line.
 Indexing starts with =0=.
 This value is auto clipped between =0= and existing number of segments in the mode line.
 
-#+begin_tip
+#+ATTR_TEXINFO: :tag Tip
+#+ATTR_HTML: :tag Tip
+#+begin_quote
 The first two segments in the mode line are often ~%e~ and ~mode-line-front-space~.
 So, /live-wc/ added at position =2= will appear at the beginning of an ordinary mode line.
-#+end_tip
+#+end_quote
 
 ** ~live-wc-abs-format~
 Default: =¶:%d=
@@ -194,9 +205,12 @@ Format string for live absolute word count.
 Default: =¶:%2.2f%%%%=
 
 Format string for live word count when expressed as a fraction (percentage).
-#+begin_warning
+
+#+ATTR_TEXINFO: :tag Warning
+#+ATTR_HTML: :tag Warning
+#+begin_quote
 Remember to sufficiently skip =%= symbols.
-#+end_warning
+#+end_quote
 
 ** ~live-wc-bright~
 Default: =1.0=
@@ -212,9 +226,6 @@ Color of segment when count overflows [[*~live-wc-target~][live-wc-target]].
 Default: ~mode-line-active~
 
 Face of /live-wc/ when displaying absolute count.
-
-# ** Source
-# #+INCLUDE: live-wc-custom.el src emacs-lisp
 
 * Interactive commands
 ** ~live-wc-set-target~
@@ -235,8 +246,6 @@ Attempt to refresh word counts.
 ** =live-wc-keymap=
 An unbound keymap within which, key-presses are bound to all above interactive commands.
 
-# ** Source
-# #+INCLUDE: live-wc-commands.el src emacs-lisp
 
 * License
 [[file:LICENSE][GNU LGPLv3]]

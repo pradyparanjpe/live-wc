@@ -1,0 +1,552 @@
+This is live-wc.info, produced by makeinfo version 7.0.3 from
+live-wc.texi.
+
+INFO-DIR-SECTION Emacs
+START-INFO-DIR-ENTRY
+* Live word count.      Count text words in real time.
+END-INFO-DIR-ENTRY
+
+
+File: live-wc.info,  Node: Top,  Next: Goals,  Up: (dir)
+
+Live Word Count
+***************
+
+* Menu:
+
+* Goals::
+* Install::
+* Mode line indicator segment::
+* Buffer-locals::
+* Customize::
+* Interactive commands::
+* License::
+
+— The Detailed Node Listing —
+
+Install
+
+* Install vc-use-package::
+* Install and configure live-wc::
+
+Buffer-locals
+
+* live-wc-target::
+* live-wc-narrow-to-org-subtree::
+* live-wc-org-headline-levels::
+* live-wc-fraction::
+* live-wc-update-unmodified::
+
+Customize
+
+* Customization group::
+* global-live-wc-modes::
+* live-wc-unbind-modes::
+* live-wc-idle-sec::
+* live-wc-ignore-if::
+* live-wc-max-buffer-size::
+* live-wc-line-pos::
+* live-wc-abs-format::
+* live-wc-frac-format::
+* live-wc-bright::
+* live-wc-overflow-color::
+* live-wc-abs-count-face::
+
+Interactive commands
+
+* live-wc-set-target::
+* live-wc-toggle-format::
+* live-wc-toggle-subtree::
+* live-wc-toggle-unmodified::
+* live-wc-refresh::
+* live-wc-keymap::
+
+
+
+File: live-wc.info,  Node: Goals,  Next: Install,  Prev: Top,  Up: Top
+
+1 Goals
+*******
+
+   • Minor mode ‘live-wc-mode’ displays live word count in mode-line.
+   • Count text words in real-time (on the go).
+   • *note Ignore: live-wc-ignore-if. lines that satisfy _arbitrary
+     predicates_.  (non-text, source-code, comments, ...)
+   • Restrict word count to region when selected.
+   • Org mode header word-counts.
+   • Set word-count target / cap (i.e.  goal / limit) for the buffer.
+   • Display formats:
+        • Absolute number of words
+        • Fraction of
+             • Count to target
+             • Region to total
+        • Dynamic color
+   • Enable globally with ‘global-live-wc-mode’.
+   • *note Customization: Customize. group: ‘live-wc’.
+   • Mode map ‘live-wc-mode-map’.
+
+
+File: live-wc.info,  Node: Install,  Next: Mode line indicator segment,  Prev: Goals,  Up: Top
+
+2 Install
+*********
+
+This package is not in any of the ‘*’ ELPAs.  I don’t know how to put it
+there.  Also, I don’t know _why_ I should put it there given the
+availability of vc-use-package
+(https://github.com/slotThe/vc-use-package).
+
+   The package may be installed directly from repository using Emacs’
+package-vc-install
+(https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html)
+using ‘vc-use-package’ (or a suitable equivalent.), and configured using
+using Emacs’ ‘use-package’ (or a suitable equivalent).  I might add this
+to ‘MELPA’ in future.
+
+* Menu:
+
+* Install vc-use-package::
+* Install and configure live-wc::
+
+
+File: live-wc.info,  Node: Install vc-use-package,  Next: Install and configure live-wc,  Up: Install
+
+2.1 Install vc-use-package
+==========================
+
+Following installation code is necessary *only for* Emacs version < 30.
+     (when (version< emacs-version "30")
+       (unless (package-installed-p 'vc-use-package)
+         (package-vc-install "https://github.com/slotThe/vc-use-package"))
+       (require 'vc-use-package)))
+
+
+File: live-wc.info,  Node: Install and configure live-wc,  Prev: Install vc-use-package,  Up: Install
+
+2.2 Install and configure live-wc
+=================================
+
+     (use-package live-wc
+       :ensure t
+       :demand t
+       :vc (live-wc :url "https://gitlab.com/pradyparanjpe/live-wc.git")
+       :init
+       (global-live-wc-mode)
+       :custom
+       (live-wc-max-buffer-size 32786)  ; 32kb
+       (live-wc-fraction t)
+       (live-wc-line-pos 5))
+
+
+File: live-wc.info,  Node: Mode line indicator segment,  Next: Buffer-locals,  Prev: Install,  Up: Top
+
+3 Mode line indicator segment
+*****************************
+
+   • Mode-line indicator segment color: fractions are colored according
+     to value.  Cyan: nearer to target (100%); Red: further from target
+     (0%).
+   • Left - Click (mouse-1) to set word-count target/cap *note
+     live-wc-target: live-wc-target. for the buffer.
+   • Right - Click (mouse-3) to toggle *note live-wc-fraction:
+     live-wc-fraction. for the buffer.
+   • Hover to see details about:
+        • Number of lines (non-blank)
+        • Number of bytes (roughly equivalent to characters including
+          spaces)
+        • Absolute words-count of the buffer.
+        • Target word-count (if set)
+
+
+File: live-wc.info,  Node: Buffer-locals,  Next: Customize,  Prev: Mode line indicator segment,  Up: Top
+
+4 Buffer-locals
+***************
+
+   • Following variables may be set locally for buffers in a Local
+     variables
+     (https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html)
+     section:
+
+     # Local Variables:
+     # live-wc-fraction: t
+     # live-wc-target: -4000
+     # End:
+
+* Menu:
+
+* live-wc-target::
+* live-wc-narrow-to-org-subtree::
+* live-wc-org-headline-levels::
+* live-wc-fraction::
+* live-wc-update-unmodified::
+
+
+File: live-wc.info,  Node: live-wc-target,  Next: live-wc-narrow-to-org-subtree,  Up: Buffer-locals
+
+4.1 ‘live-wc-target’
+====================
+
+Default: ‘nil’
+
+   Set word-count target.  Value ‘0’ is considered same as ‘nil’
+(unset).  Negative value indicates _cap_.  When cap is set, the fraction
+is Red near 100%, Cyan near 0%.
+
+
+File: live-wc.info,  Node: live-wc-narrow-to-org-subtree,  Next: live-wc-org-headline-levels,  Prev: live-wc-target,  Up: Buffer-locals
+
+4.2 ‘live-wc-narrow-to-org-subtree’
+===================================
+
+Default: ‘t’
+
+   Narrow count to current org subtree whenever possible.  When inside
+an org-heading, restrict the word-count to that heading.
+
+
+File: live-wc.info,  Node: live-wc-org-headline-levels,  Next: live-wc-fraction,  Prev: live-wc-narrow-to-org-subtree,  Up: Buffer-locals
+
+4.3 ‘live-wc-org-headline-levels’
+=================================
+
+Default: ‘nil’
+
+   Org headings up to this level are considered true _headings_ for
+word-count restriction.  Beyond this level, org-headings are regarded as
+list-items.  If value is ‘nil’, it is derived from
+‘org-export-headline-levels’.
+
+
+File: live-wc.info,  Node: live-wc-fraction,  Next: live-wc-update-unmodified,  Prev: live-wc-org-headline-levels,  Up: Buffer-locals
+
+4.4 ‘live-wc-fraction’
+======================
+
+Default: ‘t’
+
+   When possible, display word count as fraction percent, otherwise,
+display absolute (raw) number.
+
+   It is possible to display wc as fraction when:
+   • Region is selected (region / word-count)
+   • *note Target: live-wc-target. is set.  (word-count / Target)
+
+   “Word count” for this calculation respects the setting for *note
+live-wc-narrow-to-org-subtree: live-wc-narrow-to-org-subtree.
+
+
+File: live-wc.info,  Node: live-wc-update-unmodified,  Prev: live-wc-fraction,  Up: Buffer-locals
+
+4.5 ‘live-wc-update-unmodified’
+===============================
+
+Default: ‘t’
+
+   Ordinarily, _live-wc_ counters would continue collecting statistics
+*note periodically: live-wc-idle-sec. when Emacs is idle.  However, if
+this starts causing unwanted CPU load (because the file
+size/complexity), ‘live-wc-update-unmodified’ may be set to ‘nil’.
+_Live-wc_ counters will then collect statistics only once in the
+beginning when a new buffer is opened and run ‘nop’ (no operation) to
+conserve CPU and periodically when the buffer gets *note modified:
+(elisp)buffer-modified-p.
+
+     Warning: Setting to ‘nil’ could be undesirable when _live-wc_ is
+     used to navigate the buffer without modifying it, to count words in
+     various org subtrees.
+
+
+File: live-wc.info,  Node: Customize,  Next: Interactive commands,  Prev: Buffer-locals,  Up: Top
+
+5 Customize
+***********
+
+* Menu:
+
+* Customization group::
+* global-live-wc-modes::
+* live-wc-unbind-modes::
+* live-wc-idle-sec::
+* live-wc-ignore-if::
+* live-wc-max-buffer-size::
+* live-wc-line-pos::
+* live-wc-abs-format::
+* live-wc-frac-format::
+* live-wc-bright::
+* live-wc-overflow-color::
+* live-wc-abs-count-face::
+
+
+File: live-wc.info,  Node: Customization group,  Next: global-live-wc-modes,  Up: Customize
+
+5.1 Customization group
+=======================
+
+‘live-wc’
+
+
+File: live-wc.info,  Node: global-live-wc-modes,  Next: live-wc-unbind-modes,  Prev: Customization group,  Up: Customize
+
+5.2 ‘global-live-wc-modes’
+==========================
+
+Default: ‘'(text-mode)’
+
+   List of modes, including all derived modes, for which, ‘live-wc-mode’
+is turned ON automatically when ‘global-live-wc-mode’ is enabled.
+
+
+File: live-wc.info,  Node: live-wc-unbind-modes,  Next: live-wc-idle-sec,  Prev: global-live-wc-modes,  Up: Customize
+
+5.3 ‘live-wc-unbind-modes’
+==========================
+
+Default: ‘'(prog-mode dired-mode special-mode)’
+
+   List of modes, including all derived modes, for which, word-count is
+not attempted even when ‘live-wc-mode’ is enabled.
+
+
+File: live-wc.info,  Node: live-wc-idle-sec,  Next: live-wc-ignore-if,  Prev: live-wc-unbind-modes,  Up: Customize
+
+5.4 ‘live-wc-idle-sec’
+======================
+
+Default: 1 (seconds)
+
+   _Live-WC_ counters gather buffer-statistics (number of words,
+characters and lines) for the current buffer in the background, when
+Emacs is idle.  This variable sets the frequency.  If the gathered
+values are not consumed to generate _live-wc_’s mode-line segment, the
+counter assumes that nothing has happened since the last count, and runs
+‘nop’ (no operation).
+
+
+File: live-wc.info,  Node: live-wc-ignore-if,  Next: live-wc-max-buffer-size,  Prev: live-wc-idle-sec,  Up: Customize
+
+5.5 ‘live-wc-ignore-if’
+=======================
+
+Default:
+     '((:ignore (lambda () (= (line-beginning-position) (line-end-position)))
+                :desc "blank lines")
+       (:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
+       (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
+                :desc "comment (by marker)")
+       (:ignore org-at-comment-p :desc "org comment")
+       (:ignore org-at-keyword-p :desc "org keyword")
+       (:ignore org-at-table-p :desc "org table")
+       (:ignore org-at-TBLFM-p :desc "org table formula")
+       (:ignore org-at-table.el-p :desc "table.el")
+       (:ignore org-at-heading-p :desc "org heading")
+       (:ignore org-at-property-p :desc "org property")
+       (:ignore org-at-drawer-p :desc "org drawer")
+       (:ignore org-at-property-drawer-p :desc "property drawer's first line")
+       (:ignore live-wc-org-block-range :desc "any org block"))
+
+   If a line in the buffer matches any of the predicates referenced in
+this list, that line is skipped (ignored) from counts.
+   • ‘:ignore’ property refers the predicate.
+   • ‘:desc’ is not used, this is meant to remind the user why a
+     predicate was added.
+
+
+File: live-wc.info,  Node: live-wc-max-buffer-size,  Next: live-wc-line-pos,  Prev: live-wc-ignore-if,  Up: Customize
+
+5.6 ‘live-wc-max-buffer-size’
+=============================
+
+Default: 15360 (bytes)
+
+   Maximum size of buffer beyond which, word count is inactive.  This is
+conservatively set to 15kB.
+
+
+File: live-wc.info,  Node: live-wc-line-pos,  Next: live-wc-abs-format,  Prev: live-wc-max-buffer-size,  Up: Customize
+
+5.7 ‘live-wc-line-pos’
+======================
+
+Default: ‘most-positive-fixnum’
+
+   Insert _live-wc_ count at this position on mode line.  Indexing
+starts with ‘0’.  This value is auto clipped between ‘0’ and existing
+number of segments in the mode line.
+
+     Tip: The first two segments in the mode line are often ‘%e’ and
+     ‘mode-line-front-space’.  So, _live-wc_ added at position ‘2’ will
+     appear at the beginning of an ordinary mode line.
+
+
+File: live-wc.info,  Node: live-wc-abs-format,  Next: live-wc-frac-format,  Prev: live-wc-line-pos,  Up: Customize
+
+5.8 ‘live-wc-abs-format’
+========================
+
+Default: ‘¶:%d’
+
+   Format string for live absolute word count.
+
+
+File: live-wc.info,  Node: live-wc-frac-format,  Next: live-wc-bright,  Prev: live-wc-abs-format,  Up: Customize
+
+5.9 ‘live-wc-frac-format’
+=========================
+
+Default: ‘¶:%2.2f%%%%’
+
+   Format string for live word count when expressed as a fraction
+(percentage).
+
+     Warning: Remember to sufficiently skip ‘%’ symbols.
+
+
+File: live-wc.info,  Node: live-wc-bright,  Next: live-wc-overflow-color,  Prev: live-wc-frac-format,  Up: Customize
+
+5.10 ‘live-wc-bright’
+=====================
+
+Default: ‘1.0’
+
+   Brightness of _live-wc_ fraction.  Interval: ‘[0.0, 1.0]’
+
+
+File: live-wc.info,  Node: live-wc-overflow-color,  Next: live-wc-abs-count-face,  Prev: live-wc-bright,  Up: Customize
+
+5.11 ‘live-wc-overflow-color’
+=============================
+
+Default: #ff00ff
+
+   Color of segment when count overflows *note live-wc-target:
+live-wc-target.
+
+
+File: live-wc.info,  Node: live-wc-abs-count-face,  Prev: live-wc-overflow-color,  Up: Customize
+
+5.12 ‘live-wc-abs-count-face’
+=============================
+
+Default: ‘mode-line-active’
+
+   Face of _live-wc_ when displaying absolute count.
+
+
+File: live-wc.info,  Node: Interactive commands,  Next: License,  Prev: Customize,  Up: Top
+
+6 Interactive commands
+**********************
+
+* Menu:
+
+* live-wc-set-target::
+* live-wc-toggle-format::
+* live-wc-toggle-subtree::
+* live-wc-toggle-unmodified::
+* live-wc-refresh::
+* live-wc-keymap::
+
+
+File: live-wc.info,  Node: live-wc-set-target,  Next: live-wc-toggle-format,  Up: Interactive commands
+
+6.1 ‘live-wc-set-target’
+========================
+
+Set word count *note target: live-wc-target. for the buffer.
+
+
+File: live-wc.info,  Node: live-wc-toggle-format,  Next: live-wc-toggle-subtree,  Prev: live-wc-set-target,  Up: Interactive commands
+
+6.2 ‘live-wc-toggle-format’
+===========================
+
+Toggle fraction/absolute word count *note format: live-wc-frac-format.
+for the buffer.
+
+
+File: live-wc.info,  Node: live-wc-toggle-subtree,  Next: live-wc-toggle-unmodified,  Prev: live-wc-toggle-format,  Up: Interactive commands
+
+6.3 ‘live-wc-toggle-subtree’
+============================
+
+Toggle *note subtree counts: live-wc-narrow-to-org-subtree. for the
+buffer.
+
+
+File: live-wc.info,  Node: live-wc-toggle-unmodified,  Next: live-wc-refresh,  Prev: live-wc-toggle-subtree,  Up: Interactive commands
+
+6.4 ‘live-wc-toggle-unmodified’
+===============================
+
+Toggle state of *note live-wc-update-unmodified:
+live-wc-update-unmodified.
+
+
+File: live-wc.info,  Node: live-wc-refresh,  Next: live-wc-keymap,  Prev: live-wc-toggle-unmodified,  Up: Interactive commands
+
+6.5 ‘live-wc-refresh’
+=====================
+
+Attempt to refresh word counts.
+
+
+File: live-wc.info,  Node: live-wc-keymap,  Prev: live-wc-refresh,  Up: Interactive commands
+
+6.6 ‘live-wc-keymap’
+====================
+
+An unbound keymap within which, key-presses are bound to all above
+interactive commands.
+
+
+File: live-wc.info,  Node: License,  Prev: Interactive commands,  Up: Top
+
+7 License
+*********
+
+GNU LGPLv3 (LICENSE)
+
+
+
+Tag Table:
+Node: Top196
+Node: Goals1147
+Node: Install1986
+Node: Install vc-use-package2763
+Node: Install and configure live-wc3200
+Node: Mode line indicator segment3669
+Node: Buffer-locals4468
+Node: live-wc-target5043
+Node: live-wc-narrow-to-org-subtree5392
+Node: live-wc-org-headline-levels5755
+Node: live-wc-fraction6220
+Node: live-wc-update-unmodified6829
+Node: Customize7698
+Node: Customization group8120
+Node: global-live-wc-modes8279
+Node: live-wc-unbind-modes8639
+Node: live-wc-idle-sec9000
+Node: live-wc-ignore-if9565
+Node: live-wc-max-buffer-size10915
+Node: live-wc-line-pos11227
+Node: live-wc-abs-format11829
+Node: live-wc-frac-format12072
+Node: live-wc-bright12417
+Node: live-wc-overflow-color12672
+Node: live-wc-abs-count-face12958
+Node: Interactive commands13210
+Node: live-wc-set-target13507
+Node: live-wc-toggle-format13730
+Node: live-wc-toggle-subtree14016
+Node: live-wc-toggle-unmodified14300
+Node: live-wc-refresh14584
+Node: live-wc-keymap14796
+Node: License15029
+
+End Tag Table
+
+
+Local Variables:
+coding: utf-8
+End:
