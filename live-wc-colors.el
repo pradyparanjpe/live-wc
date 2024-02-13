@@ -27,15 +27,18 @@
 
 (require 'live-wc-custom)
 
+
 (defcustom live-wc-overflow-color "#ff00ff"
   "Color of segment when count overflows `live-wc-target'"
   :type 'color
   :group 'live-wc)
 
+
 (defcustom live-wc-bright 1.0
   "Brightness of count fraction"
   :type '(number :tag " 0.0 <= bright <= 1.0")
   :group 'live-wc)
+
 
 (defface live-wc-abs-count-face
   `((t ,(face-all-attributes 'mode-line-active)))
@@ -44,13 +47,16 @@
 (Color for fraction is determined by function `live-wc--color')."
   :group 'live-wc)
 
+
 (defun live-wc--invert-color-hex (hex)
   "Return a color hex-string #(0xff-R) (0xff-G) (0xff-B) from HEX."
   (apply #'color-rgb-to-hex `(,@(live-wc--invert-color (color-name-to-rgb hex)) 2)))
 
+
 (defun live-wc--invert-color (rgb)
   "Return a list of (1-R 1-G 1-B) from RGB."
   (mapcar (lambda (p) (- 1 p)) rgb))
+
 
 (defun live-wc--fill-color-cap (frac &optional invert overflow)
   "Color based on filled capacity fraction FRAC.
@@ -64,14 +70,14 @@ If INVERT is not-nil, return inverted pallet, i.e.
 \=0\= is empty (bad = red), \=1\= is filled (good = cyan)"
   (let* ((frac (if invert (- 1.0 frac) frac))
          (rgb (if (or (> frac 1.0) (< frac 0.0))
-              (color-name-to-rgb
-               (or overflow live-wc-overflow-color))
-              (let* ((red (min 1.0 (* 2.0 frac)))
-                     (green (min 1.0 (* 2.0 (- 1.0 frac))))
-                     (blue (max 0 (- 1.0 (* 10 frac)))))
-                `(,red ,green ,blue))))
-    (col-vals (mapcar (lambda (x) (* live-wc-bright x)) rgb)))
-  (apply #'color-rgb-to-hex `(,@col-vals 2))))
+                  (color-name-to-rgb (or overflow live-wc-overflow-color))
+                (let* ((red (min 1.0 (* 2.0 frac)))
+                       (green (min 1.0 (* 2.0 (- 1.0 frac))))
+                       (blue (max 0 (- 1.0 (* 10 frac)))))
+                  `(,red ,green ,blue))))
+         (col-vals (mapcar (lambda (x) (* live-wc-bright x)) rgb)))
+    (apply #'color-rgb-to-hex `(,@col-vals 2))))
+
 
 (defun live-wc--color (frac &optional swap)
   "Translate fraction into color.
@@ -85,6 +91,7 @@ Non-nil SWAP swaps \=:background\= and \=:foreground\=."
                         :background ,disp-color)
         `(:foreground ,disp-color))
     'mode-line-inactive))
+
 
 (provide 'live-wc-colors)
 ;;; live-wc-colors.el ends here

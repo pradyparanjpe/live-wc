@@ -46,8 +46,7 @@ Else, fallback to absolute.")
 (put 'live-wc-fraction 'safe-local-variable #'booleanp)
 
 
-(defvar-local live-wc-org-headline-levels
-    nil
+(defvar-local live-wc-org-headline-levels nil
   "Isolate words from org subtree with heading only up to this level.
 
 Beyond this levels, headings are treated as ordinary list items.
@@ -57,18 +56,17 @@ If nil, live-wc uses `org-export-headline-levels'")
      (lambda (x) (or (not x) (integerp x))))
 
 
-(defvar-local live-wc-narrow-to-org-subtree
-    t
+(defvar-local live-wc-narrow-to-org-subtree t
   "Narrow count to current org subtree whenever possible.")
 
 (put 'live-wc-narrow-to-org-subtree 'safe-local-variable #'booleanp)
 
 
-(defvar-local live-wc-update-unmodified
-    t
+(defvar-local live-wc-update-unmodified t
   "Update word counts even when buffer is unmodified.")
 
 (put 'live-wc-update-unmodified 'safe-local-variable #'booleanp)
+
 
 (provide 'live-wc-locals)
 ;;; live-wc-locals.el ends here

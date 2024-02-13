@@ -25,6 +25,7 @@
 
 ;;; Code:
 
+
 (defun live-wc-org-block-range ()
   "Return non-nil if inside any block.
 
@@ -35,12 +36,10 @@ Gratefully copied from https://scripter.co/splitting-an-org-block-into-two/
 Under the function named \=modi/org-in-any-block-p\=.
 "
   (save-match-data
-    (let ((pos (point))
-          (case-fold-search t)
-          (block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
+    (let ((block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
           (limit-up (save-excursion (outline-previous-heading)))
           (limit-down (save-excursion (outline-next-heading)))
-          beg end)
+          (case-fold-search t) (pos (point)) beg end)
       (save-excursion
         ;; Point is on a block when on BLOCK-BEGIN-RE or if
         ;; BLOCK-BEGIN-RE can be found before it...
@@ -59,6 +58,7 @@ Under the function named \=modi/org-in-any-block-p\=.
              (not (re-search-backward block-begin-re (1+ beg) :noerror))
              ;; Return value.
              (cons beg end))))))
+
 
 (provide 'live-wc-predicates)
 ;;; live-wc-predicates.el ends here

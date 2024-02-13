@@ -43,10 +43,9 @@ Restore using `live-wc-restore-buffer-mode-line'."
                                      (length mode-line-format))))
               (default-form (default-value 'mode-line-format)))
     (setq-local
-     mode-line-format
-     (append (cl-subseq default-form 0 insert-at)
-             `(,live-wc--line-seg)
-             (cl-subseq default-form insert-at)))
+     mode-line-format (append (cl-subseq default-form 0 insert-at)
+                              `(,live-wc--line-seg)
+                              (cl-subseq default-form insert-at)))
     (force-mode-line-update t)))
 
 
@@ -84,9 +83,7 @@ displays current wc value, nil otherwise."
   :lighter " live-wc"
   :keymap nil
   :group 'live-wc
-  (if live-wc-mode
-      (live-wc--enable)
-    (live-wc--disable)))
+  (if live-wc-mode (live-wc--enable) (live-wc--disable)))
 
 
 (provide 'live-wc-mmode)

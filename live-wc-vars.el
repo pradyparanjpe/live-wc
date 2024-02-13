@@ -24,34 +24,28 @@
 ;;; Code:
 
 
-(defvar-local live-wc--buffer-stats
-    nil
+(defvar-local live-wc--buffer-stats nil
   "Buffer stats for the current buffer")
 
 
-(defvar-local live-wc--region-stats
-    nil
+(defvar-local live-wc--region-stats nil
   "regions stats for the current selection")
 
 
-(defvar-local live-wc--org-subtree-stats
-    nil
+(defvar-local live-wc--org-subtree-stats nil
   "Count stats for the current org subtree")
 
 
-(defvar-local live-wc--mem
-    'uninit
+(defvar-local live-wc--mem 'uninit
   "Memory of displayed value for reuse (esp. while nothing changes)")
 
 
-(defvar-local live-wc--line-seg
-    '(:eval (live-wc--display))
+(defvar-local live-wc--line-seg '(:eval (live-wc--display))
   "Display live word count from `live-word-count-mode'")
 
 
 (defvar live-wc--timers nil
-
-  "Handle for live-wc timers
+  "Handle for live-wc timers.
 
 For future removal from idle run `timer-idle-list'.
 This is not a local variable. It is used by both,
@@ -59,7 +53,6 @@ the minor mode and the globalized minor mode.")
 
 
 (defvar live-wc--enabled-buffers nil
-
   "A list of buffers for which, live-wc-mode is enabled.")
 
 

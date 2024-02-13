@@ -35,9 +35,8 @@
 (defun live-wc-set-target ()
   "Set value for `live-wc-target'."
   (interactive)
-  (let ((wc-target
-         (read-number "Set word count target:\t"
-                      (if live-wc-target (- live-wc-target) 0))))
+  (let ((wc-target (read-number "Set word count target:\t"
+                                (if live-wc-target (- live-wc-target) 0))))
     (setq-local live-wc-target (if (= 0 wc-target) nil wc-target))))
 
 

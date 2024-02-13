@@ -29,8 +29,7 @@
 (require 'live-wc-mmode)
 
 
-(defvar live-wc--original-default-mode-line
-  nil
+(defvar live-wc--original-default-mode-line nil
   "Stores original mode-line format.")
 
 (put 'live-wc--original-default-mode-line 'risky-local-variable t)
@@ -79,25 +78,23 @@ Reset to the value of `live-wc--original-default-mode-line' if non-nil."
 (defun live-wc--disable-globally ()
   "Functions to be called to disable minor mode."
   (live-wc--restore-default-mode-line)
-  (setq live-wc--enabled-buffers
-        (delete 'global live-wc--enabled-buffers))
+  (setq live-wc--enabled-buffers (delete 'global live-wc--enabled-buffers))
   (live-wc--cancel-timers-maybe))
 
 
 (defun live-wc--turn-on ()
   "Determines if live-wc should be turned on for the buffer."
-  (unless (apply #'derived-mode-p live-wc-unbind-modes)
-    (live-wc-mode 1)))
+  (unless (apply #'derived-mode-p live-wc-unbind-modes) (live-wc-mode 1)))
 
 
 ;;;###autoload
-(define-globalized-minor-mode global-live-wc-mode live-wc-mode
+(define-globalized-minor-mode global-live-wc-mode
+  live-wc-mode
   live-wc--turn-on
   :lighter nil
   :group 'live-wc
   :predicate '(text-mode)
-  (if global-live-wc-mode
-      (live-wc--enable-globally)
+  (if global-live-wc-mode (live-wc--enable-globally)
     (live-wc--disable-globally)))
 
 

@@ -23,25 +23,28 @@
 
 ;;; Code:
 
+
 (defgroup live-wc nil
   "Colored display segment of word counts on mode line."
   :group 'convenience
   :group 'display
   :prefix "live-wc")
 
+
 ;; Count when
-(defcustom live-wc-unbind-modes
-  '(prog-mode dired-mode special-mode)
+(defcustom live-wc-unbind-modes '(prog-mode dired-mode special-mode)
   "Major modes and their derivatives, in which, word-count is not displayed.
 
  This list overrides `live-wc-bind-modes'."
   :type '(repeat (symbol :tag "Mode in which, word count is inactivated"))
   :group 'live-wc)
 
+
 (defcustom live-wc-idle-sec 1
   "Idle seconds after which, a word count is triggered."
   :type 'number
   :group 'live-wc)
+
 
 (require 'live-wc-predicates)
 
@@ -73,11 +76,12 @@ Specifically, if the function returns
                                 ((const :desc) (string :tag "description")))))
   :group 'live-wc)
 
-(defcustom live-wc-max-buffer-size
-  15360
+
+(defcustom live-wc-max-buffer-size 15360
   "Maximum size of buffer beyond which, word count is inactive."
   :type 'number
   :group 'live-wc)
+
 
 ;; Display
 (defcustom live-wc-line-pos most-positive-fixnum
@@ -90,21 +94,22 @@ The default value `most-positive-fixnum' puts the segment at the end."
   :type 'number
   :group 'live-wc)
 
-(defcustom live-wc-abs-format "¶:%d"
 
+(defcustom live-wc-abs-format "¶:%d"
   "Format of live absolute word count.
 
 \=%d\= (formatted integer) is replaced by the count."
   :type '(string :tag "Must contain a %d")
   :group 'live-wc)
 
-(defcustom live-wc-frac-format "¶:%2.2f%%%%"
 
+(defcustom live-wc-frac-format "¶:%2.2f%%%%"
   "Format of live word count when expressed as a fraction.
 
 %f (formatted decimal) is replaced by the fraction."
   :type '(string :tag "Must contain a %f")
   :group 'live-wc)
+
 
 (provide 'live-wc-custom)
 ;;; live-wc-custom.el ends here

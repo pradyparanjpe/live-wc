@@ -38,13 +38,12 @@
 
 (defun live-wc--should-count-p ()
   "Should live-wc even count?"
-  (and
-   live-wc-mode
-   (mode-line-window-selected-p)
-   (or live-wc-update-unmodified
-       (buffer-modified-p)
-       (equal live-wc--mem 'uninit))
-   (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
+  (and live-wc-mode
+       (mode-line-window-selected-p)
+       (or live-wc-update-unmodified
+           (buffer-modified-p)
+           (equal live-wc--mem 'uninit))
+       (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
 
 
 (defun live-wc--size-ok-p (bounds)
@@ -74,25 +73,20 @@ If BOUNDS is t, count for the full buffer.
 If POINT-BEGIN and POINT-END are provided, count only that region.
 If only POINT-BEGIN is provided, count from that point to the end of buffer.
 If neither is provided, count the complete buffer."
-  (when-let*
-      ((bounds
-        (cond
-         ((listp bounds) bounds) ; assume list of cons
-         ((integerp bounds) `((,(point-min) . ,bounds)))
-         (bounds `((,(point-min) . ,(point-max))))))
-       (num-lines 0) (num-bytes 0) (num-words 0))
+  (when-let* ((bounds (cond ((listp bounds) bounds) ; assume list of cons
+                            ((integerp bounds) `((,(point-min) . ,bounds)))
+                            (bounds `((,(point-min) . ,(point-max))))))
+              (num-lines 0) (num-bytes 0) (num-words 0))
     (save-excursion
       (dolist (region bounds)
-        (let ((point-begin (car region))
-              (point-end (cdr region)))
+        (let ((point-begin (car region)) (point-end (cdr region)))
           (goto-char point-begin)
           (while (< (point) point-end)
             (let ((non-text (cl-some (lambda (x)
                                        (funcall (or (plist-get x :ignore) x)))
                                      live-wc-ignore-if)))
               (unless non-text
-                (let ((line-beg (max (line-beginning-position)
-                                     point-begin))
+                (let ((line-beg (max (line-beginning-position) point-begin))
                       (line-end (min (line-end-position) point-end)))
                   (cl-incf num-lines)
                   (cl-incf num-bytes (- line-end line-beg))
@@ -100,12 +94,10 @@ If neither is provided, count the complete buffer."
               (forward-line 1)
 
               ;; Skip all next non-code lines
-              (cond ((consp non-text)
-                     (when (> (point) (cdr non-text))
-                       (goto-char (1+ (cdr non-text)))))
-                    ((integerp non-text)
-                     (when (> (point) non-text)
-                       (goto-char (1+ non-text))))))))))
+              (cond ((consp non-text) (when (> (point) (cdr non-text))
+                                        (goto-char (1+ (cdr non-text)))))
+                    ((integerp non-text) (when (> (point) non-text)
+                                           (goto-char (1+ non-text))))))))))
     `((lines . ,num-lines) (bytes . ,num-bytes) (words . ,num-words))))
 
 
@@ -113,14 +105,13 @@ If neither is provided, count the complete buffer."
   "Move point to heading of current subtree.
 
 Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
-  (unless (org-at-heading-p)
-    (org-back-to-heading-or-point-min))
+  (unless (org-at-heading-p) (org-back-to-heading-or-point-min))
   (while (> (or (org-current-level) 0)
-            (or live-wc-org-headline-levels
-                org-export-headline-levels))
+            (or live-wc-org-headline-levels org-export-headline-levels))
     (unless (= (line-number-at-pos) 1) (forward-line -1))
     (org-back-to-heading-or-point-min))
   (beginning-of-line))
+
 
 (defun live-wc--org-bounds ()
   "Bounds of the current org heading.
@@ -136,11 +127,8 @@ Headings at levels less than or equal to
 `org-export-headline-levels'.
 return nil"
   (interactive)
-  (if (not (and (featurep 'org) (derived-mode-p 'org-mode)))
-      nil
-    (if (not (org-current-level))
-        ;; Before first heading (not in org-scope)
-        nil
+  (if (not (and (featurep 'org) (derived-mode-p 'org-mode))) nil
+    (if (not (org-current-level)) nil
       (save-mark-and-excursion
         (let*
             ((org-begin
@@ -161,6 +149,7 @@ return nil"
           `((,org-begin . ,org-end)))))))
 
 
+;;;###autoload
 (defun live-wc--buffer-count ()
   "Stats for buffer counts.
 
@@ -172,6 +161,7 @@ Evaluated as a background process."
                 (live-wc--count-text-words t))))
 
 
+;;;###autoload
 (defun live-wc--region-count ()
   "Stats for selected region
 
@@ -185,6 +175,7 @@ Evaluated as a background process."
                 (live-wc--count-text-words selection))))
 
 
+;;;###autoload
 (defun live-wc--org-count ()
   "Stats for Org-mode subtree.
 

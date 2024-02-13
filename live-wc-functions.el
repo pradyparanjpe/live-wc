@@ -27,6 +27,7 @@
 (require 'live-wc-vars)
 
 
+;;;###autoload
 (defun live-wc--reset-stats (&optional mem)
   "Reset region and buffer stats, and memory.
 
@@ -43,30 +44,30 @@ When called interactively, reset all to nil, return nil."
   mem)
 
 
+;;;###autoload
 (defun live-wc--add-timers-maybe ()
   "Add timers to `timer-idle-list' to count buffer periodically."
   (unless live-wc--timers
-    (setq
-     live-wc--timers
-     `(,(run-with-idle-timer live-wc-idle-sec t #'live-wc--buffer-count)
-       ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--region-count)
-       ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--org-count)))))
+    (setq live-wc--timers
+          `(,(run-with-idle-timer live-wc-idle-sec t #'live-wc--buffer-count)
+            ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--region-count)
+            ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--org-count)))))
 
 
+;;;###autoload
 (defun live-wc--cancel-timers-maybe ()
   "Clean up timers if no buffer (or global) is using it any more."
   (setq live-wc--enabled-buffers
         (cl-delete-if-not (lambda (buf)
-                            (or (eq buf 'global)
-                                (buffer-live-p buf)))
+                            (or (eq buf 'global) (buffer-live-p buf)))
                           live-wc--enabled-buffers))
   (unless live-wc--enabled-buffers
     (when live-wc--timers
-      (dolist (timer live-wc--timers)
-        (cancel-timer timer))
+      (dolist (timer live-wc--timers) (cancel-timer timer))
       (setq live-wc--timers nil))))
 
 
+;;;###autoload
 (defun live-wc--display ()
   ;; This function is called by mode-line again-and-again
   "Generate display string (with properties) for mode-line.
