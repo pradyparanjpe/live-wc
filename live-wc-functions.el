@@ -97,6 +97,7 @@ If new stats are unavailable, display from `live-wc--mem'"
              (num-words (or (when live-wc-narrow-to-org-subtree
                               (alist-get 'words live-wc--org-subtree-stats))
                             (alist-get 'words live-wc--buffer-stats)))
+             (num-words (unless (= num-words 0) num-words))
              ;; number of words selected
              (num-select (alist-get 'words live-wc--region-stats))
              ;; count-val is either floatp (fraction), integerp
