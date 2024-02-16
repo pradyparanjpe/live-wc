@@ -97,13 +97,13 @@ If new stats are unavailable, display from `live-wc--mem'"
              (num-words (or (when live-wc-narrow-to-org-subtree
                               (alist-get 'words live-wc--org-subtree-stats))
                             (alist-get 'words live-wc--buffer-stats)))
-             (num-words (unless (= num-words 0) num-words))
              ;; number of words selected
              (num-select (alist-get 'words live-wc--region-stats))
              ;; count-val is either floatp (fraction), integerp
              (count-val (cond
                          ;; Both stats are available and meant to be processed
-                         ((and num-words num-select live-wc-fraction)
+                         ((and num-words num-select live-wc-fraction
+                               (/= num-words 0))
                           (/ (float num-select) num-words))
                          ;; Only region stats are available
                          (num-select
@@ -114,9 +114,13 @@ If new stats are unavailable, display from `live-wc--mem'"
                          (t (if (and target live-wc-fraction)
                                 (/ (float num-words) target)
                               num-words))))
-             (text (if (floatp count-val)
-                       (format live-wc-frac-format (* 100 count-val))
-                     (format live-wc-abs-format count-val)))
+             (text (cond ((floatp count-val)
+                          (format live-wc-frac-format (* 100 count-val)))
+                         ((integerp count-val)
+                          (format live-wc-abs-format count-val))
+                         (t (display-warning
+                             '(live-wc format) "Bad count-val type" :debug)
+                            "")))
              (disp-face (if (floatp count-val)
                             (live-wc--color
                              count-val
