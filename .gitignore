@@ -1,5 +1,6 @@
 *.elc
 *.eln
-live-wc-autoloads.el
-*.html
-live-wc-pkg.el
+*-pkg.el
+*-autoloads.el
+**/*.html
+doc/live-wc.texi

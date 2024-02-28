@@ -1,3 +1,4 @@
+;; -*- mode: text; -*-
 Live word count (`live-wc')
 ==================================
 
@@ -20,13 +21,20 @@ Features
 
 Minor mode
 ----------------
-`live-wc-mode': Inserts =live-wc= segment in the mode-line.
+`live-wc-mode': Inserts \\='live-wc\\=' segment in the mode-line.
 `global-live-wc-mode': Inserts the segment in default mode-line.
 
 Customization
 -------------------
-Customization group `live-wc' (`convenience', `display')
-provides customization.
+Customization group `live-wc' (group `convenience' and group `display') provides
+customization.
 
 `live-wc-mode' is auto-enabled for each mode listed in `global-live-wc-modes'
 (i.e. `text-mode' by default) and derivatives if the global mode is enabled.
+
+;; Local Variables:
+;; mode: display-fill-column-indicator-mode
+;; mode: auto-fill-mode
+;; fill-column: 80
+;; live-wc-target: -1000
+;; End:

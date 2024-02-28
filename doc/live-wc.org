@@ -1,0 +1,282 @@
+#+title: Live-wc for GNU Emacs
+#+author: Pradyumna Swanand Paranjape
+#+EMAIL: pradyparanjpe@rediffmail.com
+#+language: en
+#+options: ^:{} ':t toc:t author:t email:t num:t
+#+startup: overview
+#+macro: 0.0.2
+
+#+texinfo_filename: live-wc.info
+#+texinfo_dir_category: Individual utilities
+#+texinfo_dir_title: Live-wc: (live-wc)
+#+texinfo_dir_desc: Count text words in real time
+#+texinfo_header: @set MAINTAINER Pradyparanjpe Paranjape
+#+texinfo_header: @set MAINTAINEREMAIL @email{pradyparanjpe@rediffmail.com}
+#+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:pradyparanjpe@rediffmail.com,contact the maintainer}
+
+#+texinfo: @insertcopying
+
+
+* Install
+This package is not in any of the  =*= ELPAs.
+I don't know how to put it there.
+Also, I don't know /why/ I should put it there given the availability of [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html][package-vc-install]].
+I might add this to =MELPA= in future.
+
+** Melpa recipe                                                      :noexport:
+Potential recipe
+#+begin_src emacs-lisp :export no
+  (live-wc :fetcher gitlab :repo "pradyparanjpe/live-wc")
+#+end_src
+
+** Manually
+Install live-wc using vc-package-install.
+#+begin_src emacs-lisp
+  (package-vc-install
+   '(live-wc :url "https://gitlab.com/pradyparanjpe/live-wc.git"))
+  (customize-set-variable 'live-wc-max-buffer-size 32768)  ; 32 kB
+  (customize-set-variable 'live-wc-fraction t)
+  (customize-set-variable 'live-wc-line-pos 5)
+  (require 'live-wc)  ; optional
+  (global-live-wc-mode)  ; optional
+  (global-set-key (kbd "C-#") live-wc-keymap)  ; optional, #: number/count
+#+end_src
+
+** Use Package
+*** Install vc-use-package
+Following installation code is necessary *only for* Emacs version < 30.
+#+begin_src emacs-lisp
+  (when (version< emacs-version "30")
+    (unless (package-installed-p 'vc-use-package)
+      (package-vc-install "https://github.com/slotThe/vc-use-package"))
+    (require 'vc-use-package))
+#+end_src
+
+*** Configure
+As I use package: ([[https://github.com/slotThe/vc-use-package][vc-use-package]])
+#+begin_src emacs-lisp
+  (use-package live-wc
+    :demand t  ; optional
+    :vc (live-wc :url "https://gitlab.com/pradyparanjpe/live-wc.git")
+    :init (global-live-wc-mode)  ; optional
+    :custom
+    (live-wc-max-buffer-size 32768)  ; 32kB
+    (live-wc-fraction t)
+    (live-wc-line-pos 5)
+    :bind-keymap ("C-#" . live-wc-keymap))  ; optional
+#+end_src
+
+* Goals
+- Minor mode ~live-wc-mode~ displays live word count in mode-line.
+- Count text words in real-time (on the go).
+- [[*~live-wc-ignore-if~][Ignore]] lines that satisfy /arbitrary predicates/. (non-text, source-code, comments, ...)
+- Restrict word count to region when selected.
+- Org mode header word-counts.
+- Set word-count target / cap (i.e. goal / limit) for the buffer.
+- Display formats:
+  + Absolute number of words
+  + Fraction of
+    * Count to target
+    * Region to total
+  + Dynamic color
+- Enable globally with ~global-live-wc-mode~.
+- [[*Customize][Customization]] group: ~live-wc~.
+- Mode map ~live-wc-mode-map~.
+
+* Mode-line segment
+#+ATTR_HTML: :width 200px
+[[file:live-wc-tooltip-demo.png]]
+
+** Format
+The segment displays word count [[*~live-wc-abs-format~][as the absolute number]] of words in the current scope or whenever possible, as [[*~live-wc-frac-format~][fractional form]].
+
+It is /possible/ to display word count as fraction (in percentage) when:
+- [[*~live-wc-fraction~][live-wc-fraction]] is set to ~t~ =AND=
+  - Region is selected (fraction = 100 * region / word-count) =OR=
+  - [[*~live-wc-target~][Target]] is set. (fraction = 100 * word-count / target)
+
+** Color
+Absolute word count face color is [[*~live-wc-abs-count-face~][static]].
+Fraction is colored red near 0% (deemed to be /bad/) and progressively becomes cyan as the word-count approaches the [[*~live-wc-target~][target]], 100% (deemed to be /good/).
+Negative =target= is /cap/ (capacity).
+When cap is set, the fraction color is reversed; red near 100% (completely filled), cyan near 0% (lot of room).
+
+** Tool-tip
+When mouse hovers over the segment, a tool-tip (~help-echo~) appears.
+The tool-tip provides details about the current buffer:
+- Number of lines
+- Number of characters (including spaces)
+- Number of words
+- The target or cap (if set)
+
+The tool-tip is never [[*~live-wc-narrow-to-org-subtree~][narrowed]].
+
+** On-click
+For quick toggles, mouse-click (mouse-1) on the mode-line segment is bound to [[*~live-wc-set-target~][live-wc-set-target]] and (mouse-3) is bound to toggle [[*~live-wc-toggle-format~][format]].
+
+* Customize
+** Customization group
+~live-wc~
+
+** ~global-live-wc-modes~
+Default: ~'(text-mode)~
+
+List of modes, including all derived modes, for which, ~live-wc-mode~ is turned ON automatically when ~global-live-wc-mode~ is enabled.
+
+** ~live-wc-unbind-modes~
+Default: ~'(prog-mode dired-mode special-mode)~
+
+List of modes, including all derived modes, for which, word-count is not attempted even when ~live-wc-mode~ is enabled.
+
+** ~live-wc-idle-sec~
+Default: 1 (seconds)
+
+/Live-WC/ counters gather buffer-statistics (number of words, characters and lines) for the current buffer in the background, when Emacs is idle.
+This variable sets the frequency.
+If the gathered values are not consumed to generate /live-wc/'s mode-line segment, the counter assumes that nothing has happened since the last count, and runs =nop= (no operation).
+
+** ~live-wc-ignore-if~
+Default:
+#+begin_src emacs-lisp
+  '((:ignore (lambda () (= (line-beginning-position) (line-end-position)))
+             :desc "blank lines")
+    (:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
+    (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
+             :desc "comment (by marker)")
+    (:ignore org-at-comment-p :desc "org comment")
+    (:ignore org-at-keyword-p :desc "org keyword")
+    (:ignore org-at-table-p :desc "org table")
+    (:ignore org-at-TBLFM-p :desc "org table formula")
+    (:ignore org-at-table.el-p :desc "table.el")
+    (:ignore org-at-heading-p :desc "org heading")
+    (:ignore org-at-property-p :desc "org property")
+    (:ignore org-at-drawer-p :desc "org drawer")
+    (:ignore org-at-property-drawer-p :desc "property drawer's first line")
+    (:ignore live-wc-org-block-range :desc "any org block"))
+#+end_src
+
+If a line in the buffer matches any of the predicates referred in this list, that line is skipped (ignored) from counts.
+- ~:ignore~ property refers the predicate.
+- ~:desc~ is not used, this is meant to remind the user why a predicate was added.
+
+** ~live-wc-max-buffer-size~
+Default: 15360 (bytes)
+
+Maximum size of buffer beyond which, word count is inactive.
+This is conservatively set to 15kB.
+
+** ~live-wc-line-pos~
+Default: ~most-positive-fixnum~
+
+Insert /live-wc/ count at this position on mode line.
+Indexing starts with =0=.
+This value is auto clipped between =0= and existing number of segments in the mode line.
+
+#+ATTR_TEXINFO: :tag Tip
+#+ATTR_HTML: :tag Tip
+#+begin_quote
+The first two segments in the mode line are often ~%e~ and ~mode-line-front-space~.
+So, /live-wc/ added at position =2= will appear at the beginning of an ordinary mode line.
+#+end_quote
+
+** ~live-wc-abs-format~
+Default: =¶:%d=
+
+Format string for live absolute word count.
+
+** ~live-wc-frac-format~
+Default: =¶:%2.2f%%%%=
+
+Format string for live word count when expressed as a fraction (percentage).
+
+#+ATTR_TEXINFO: :tag Warning
+#+ATTR_HTML: :tag Warning
+#+begin_quote
+Remember to sufficiently skip =%= symbols.
+#+end_quote
+
+** ~live-wc-bright~
+Default: =1.0=
+
+Brightness of /live-wc/ fraction. Interval: =[0.0, 1.0]=
+
+** ~live-wc-overflow-color~
+Default: #ff00ff
+
+Color of segment when count overflows [[*~live-wc-target~][live-wc-target]].
+
+** ~live-wc-abs-count-face~
+Default: ~mode-line-active~
+
+Face of /live-wc/ when displaying absolute count.
+
+* Interactive commands
+** ~live-wc-set-target~
+Set word count [[*~live-wc-target~][target]] for the buffer.
+
+** ~live-wc-toggle-format~
+Toggle fraction/absolute word count [[*~live-wc-frac-format~][format]] for the buffer.
+
+** ~live-wc-toggle-subtree~
+Toggle [[*~live-wc-narrow-to-org-subtree~][subtree counts]] for the buffer.
+
+** ~live-wc-toggle-unmodified~
+Toggle state of [[*~live-wc-update-unmodified~][live-wc-update-unmodified]].
+
+** ~live-wc-refresh~
+Attempt to refresh word counts.
+
+** =live-wc-keymap=
+An unbound keymap within which, key-presses are bound to all above interactive commands.
+
+* Buffer-locals
+- Following variables may be set locally for buffers in a [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html][Local variables]] section:
+
+#+begin_example org
+# Local Variables:
+# live-wc-fraction: t
+# live-wc-target: -4000
+# End:
+#+end_example
+
+** ~live-wc-target~
+Default: =nil=
+
+Set word-count target.
+=0= is treated as =nil= (unset).
+Negative value indicates [[*Color][cap]].
+
+** ~live-wc-narrow-to-org-subtree~
+Default: =t=
+
+Narrow (restrict) count to focused org subtree whenever possible; /i.e./ when inside an org-heading, restrict the word-count to that heading.
+Nevertheless, display unrestricted buffer-level word-counts when point is before the first org heading.
+The [[*Tool-tip][tool-tip]] always shows buffer-level counts.
+
+** ~live-wc-org-headline-levels~
+Default: =nil=
+
+Org headings up to this level are considered /true headings/ for word-count narrowing.
+Beyond this level, org-headings are regarded as mere list-items.
+If value is =nil=, it is derived from ~org-export-headline-levels~, which motivated this variable.
+
+** ~live-wc-fraction~
+Default: =t=
+
+When possible, display word count as fraction percent, otherwise, display absolute (raw) number.
+This respects the setting for [[*~live-wc-narrow-to-org-subtree~][live-wc-narrow-to-org-subtree]].
+
+** ~live-wc-update-unmodified~
+Default: =t=
+
+Ordinarily, /live-wc/ counters would continue collecting statistics [[*~live-wc-idle-sec~][periodically]] when Emacs is idle.
+However, if this starts causing unwanted CPU load (because the file size/complexity), ~live-wc-update-unmodified~ may be set to =nil=.
+/Live-wc/ counters will then collect statistics only once in the beginning when a new buffer is opened and run =nop= (no operation) to conserve CPU.
+/Live-wc/ will then start collecting statistics periodically only while the buffer is [[info:elisp#buffer-modified-p][modified]].
+
+#+ATTR_TEXINFO: :tag Warning
+#+ATTR_HTML: :tag Warning
+#+begin_quote
+Setting to =nil= could be undesirable when /live-wc/ is used to navigate the buffer without modifying it, to count words in various org subtrees.
+#+end_quote
+

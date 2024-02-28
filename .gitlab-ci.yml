@@ -2,13 +2,14 @@ stages:
 - docs
 
 pages:
-  image: "alpine:latest"
+  image: "iquiw/alpine-emacs:latest"
   stage: docs
   before_script:
-  - export PATH="${PATH}:${HOME}/.local/bin"
   - mkdir -p public
   script:
-  - cp live-wc.html public/index.html
+  - emacs --batch --no-init-file --load "publish.el" --funcall "live-wc-publish--all"
+  - cp doc/live-wc-tooltip-demo.png public/live-wc-tooltip-demo.png
+  - cp doc/live-wc.html public/index.html
   artifacts:
     paths:
     - public

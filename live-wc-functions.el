@@ -111,7 +111,7 @@ If new stats are unavailable, display from `live-wc--mem'"
                               (/ (float num-select) target)
                             num-select))
                          ;; Only buffer stats are available
-                         (t (if (and target live-wc-fraction)
+                         (t (if (and num-words target live-wc-fraction)
                                 (/ (float num-words) target)
                               num-words))))
              (text (cond ((floatp count-val)

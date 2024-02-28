@@ -30,10 +30,11 @@
   "Targetted number of (text) words to write in buffer.
 
 Word-count target for the buffer.
-Value \=0\= is interpreted as nil.
-If the value is negative, it is interpreted as \=CAP\= (upper limit).")
+Value \\='0\\=' is interpreted as nil.
+If the value is negative, it is interpreted as \\='CAP\\=' (upper limit).")
 
-(put 'live-wc-target 'safe-local-variable #'numberp)
+(put 'live-wc-target 'safe-local-variable
+     (lambda (x) (or (not x) (numberp x))))
 
 
 (defvar-local live-wc-fraction t

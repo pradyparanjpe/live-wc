@@ -14,5 +14,5 @@ File: dir,	Node: Top	This is the top of the INFO tree
 
 * Menu:
 
-Emacs
-* Live word count.              Count text words in real time.
+Individual utilities
+* Live-wc: (live-wc).                           Count text words in real time.
