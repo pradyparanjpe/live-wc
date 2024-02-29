@@ -3,8 +3,10 @@
 #+EMAIL: pradyparanjpe@rediffmail.com
 #+language: en
 #+options: ^:{} ':t toc:t author:t email:t num:t
+#+PROPERTY: header-args :eval no
 #+startup: overview
-#+macro: 0.0.2
+#+macro: 0.0.3
+#+bind: org-html-htmlize-output-type css
 
 #+texinfo_filename: live-wc.info
 #+texinfo_dir_category: Individual utilities
@@ -25,13 +27,13 @@ I might add this to =MELPA= in future.
 
 ** Melpa recipe                                                      :noexport:
 Potential recipe
-#+begin_src emacs-lisp :export no
+#+begin_src emacs-lisp :exports none
   (live-wc :fetcher gitlab :repo "pradyparanjpe/live-wc")
 #+end_src
 
 ** Manually
 Install live-wc using vc-package-install.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :exports code
   (package-vc-install
    '(live-wc :url "https://gitlab.com/pradyparanjpe/live-wc.git"))
   (customize-set-variable 'live-wc-max-buffer-size 32768)  ; 32 kB
@@ -45,7 +47,7 @@ Install live-wc using vc-package-install.
 ** Use Package
 *** Install vc-use-package
 Following installation code is necessary *only for* Emacs version < 30.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :exports code
   (when (version< emacs-version "30")
     (unless (package-installed-p 'vc-use-package)
       (package-vc-install "https://github.com/slotThe/vc-use-package"))
@@ -54,7 +56,7 @@ Following installation code is necessary *only for* Emacs version < 30.
 
 *** Configure
 As I use package: ([[https://github.com/slotThe/vc-use-package][vc-use-package]])
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :exports code
   (use-package live-wc
     :demand t  ; optional
     :vc (live-wc :url "https://gitlab.com/pradyparanjpe/live-wc.git")
@@ -96,7 +98,7 @@ It is /possible/ to display word count as fraction (in percentage) when:
   - [[*~live-wc-target~][Target]] is set. (fraction = 100 * word-count / target)
 
 ** Color
-Absolute word count face color is [[*~live-wc-abs-count-face~][static]].
+Absolute word count face color is [[*~live-wc-abs-count~][static]].
 Fraction is colored red near 0% (deemed to be /bad/) and progressively becomes cyan as the word-count approaches the [[*~live-wc-target~][target]], 100% (deemed to be /good/).
 Negative =target= is /cap/ (capacity).
 When cap is set, the fraction color is reversed; red near 100% (completely filled), cyan near 0% (lot of room).
@@ -119,17 +121,39 @@ For quick toggles, mouse-click (mouse-1) on the mode-line segment is bound to [[
 ~live-wc~
 
 ** ~global-live-wc-modes~
-Default: ~'(text-mode)~
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+(default-value 'global-live-wc-modes)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+(text-mode)
+#+end_src
 
 List of modes, including all derived modes, for which, ~live-wc-mode~ is turned ON automatically when ~global-live-wc-mode~ is enabled.
 
 ** ~live-wc-unbind-modes~
-Default: ~'(prog-mode dired-mode special-mode)~
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+(default-value 'live-wc-unbind-modes)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+(prog-mode dired-mode special-mode)
+#+end_src
 
 List of modes, including all derived modes, for which, word-count is not attempted even when ~live-wc-mode~ is enabled.
 
 ** ~live-wc-idle-sec~
-Default: 1 (seconds)
+Default: (seconds)
+#+begin_src emacs-lisp :exports results :eval t :results value code
+(default-value 'live-wc-idle-sec)
+#+end_src
+
+#+RESULTS:
+: 1
 
 /Live-WC/ counters gather buffer-statistics (number of words, characters and lines) for the current buffer in the background, when Emacs is idle.
 This variable sets the frequency.
@@ -137,22 +161,24 @@ If the gathered values are not consumed to generate /live-wc/'s mode-line segmen
 
 ** ~live-wc-ignore-if~
 Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+live-wc-ignore-if
+#+end_src
+
+#+RESULTS:
 #+begin_src emacs-lisp
-  '((:ignore (lambda () (= (line-beginning-position) (line-end-position)))
-             :desc "blank lines")
-    (:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
-    (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
-             :desc "comment (by marker)")
-    (:ignore org-at-comment-p :desc "org comment")
-    (:ignore org-at-keyword-p :desc "org keyword")
-    (:ignore org-at-table-p :desc "org table")
-    (:ignore org-at-TBLFM-p :desc "org table formula")
-    (:ignore org-at-table.el-p :desc "table.el")
-    (:ignore org-at-heading-p :desc "org heading")
-    (:ignore org-at-property-p :desc "org property")
-    (:ignore org-at-drawer-p :desc "org drawer")
-    (:ignore org-at-property-drawer-p :desc "property drawer's first line")
-    (:ignore live-wc-org-block-range :desc "any org block"))
+((:ignore live-wc-line-blank-p :desc "blank line")
+ (:ignore live-wc-at-comment-p :desc "comment")
+ (:ignore org-at-comment-p :desc "org comment")
+ (:ignore org-at-keyword-p :desc "org keyword")
+ (:ignore org-at-table-p :desc "org table")
+ (:ignore org-at-TBLFM-p :desc "org table formula")
+ (:ignore org-at-table.el-p :desc "table.el")
+ (:ignore org-at-heading-p :desc "org heading")
+ (:ignore org-at-property-p :desc "org property")
+ (:ignore org-at-drawer-p :desc "org drawer")
+ (:ignore org-at-property-drawer-p :desc "property drawer's first line")
+ (:ignore live-wc-org-block-range :desc "any org block"))
 #+end_src
 
 If a line in the buffer matches any of the predicates referred in this list, that line is skipped (ignored) from counts.
@@ -160,13 +186,25 @@ If a line in the buffer matches any of the predicates referred in this list, tha
 - ~:desc~ is not used, this is meant to remind the user why a predicate was added.
 
 ** ~live-wc-max-buffer-size~
-Default: 15360 (bytes)
+Default: (bytes)
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-max-buffer-size)
+#+end_src
+
+#+RESULTS:
+: 1048576
 
 Maximum size of buffer beyond which, word count is inactive.
 This is conservatively set to 15kB.
 
 ** ~live-wc-line-pos~
 Default: ~most-positive-fixnum~
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-line-pos)
+#+end_src
+
+#+RESULTS:
+: 5
 
 Insert /live-wc/ count at this position on mode line.
 Indexing starts with =0=.
@@ -180,12 +218,25 @@ So, /live-wc/ added at position =2= will appear at the beginning of an ordinary 
 #+end_quote
 
 ** ~live-wc-abs-format~
-Default: =¶:%d=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-abs-format)
+#+end_src
+
+#+RESULTS:
+: ¶:%d
+
 
 Format string for live absolute word count.
 
 ** ~live-wc-frac-format~
-Default: =¶:%2.2f%%%%=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-frac-format)
+#+end_src
+
+#+RESULTS:
+: ¶:%2.2f%%%%
 
 Format string for live word count when expressed as a fraction (percentage).
 
@@ -196,17 +247,54 @@ Remember to sufficiently skip =%= symbols.
 #+end_quote
 
 ** ~live-wc-bright~
-Default: =1.0=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-bright)
+#+end_src
+
+#+RESULTS:
+: 1.0
 
 Brightness of /live-wc/ fraction. Interval: =[0.0, 1.0]=
 
 ** ~live-wc-overflow-color~
-Default: #ff00ff
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-overflow-color)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+"#ff00ff"
+#+end_src
 
 Color of segment when count overflows [[*~live-wc-target~][live-wc-target]].
 
-** ~live-wc-abs-count-face~
-Default: ~mode-line-active~
+** ~live-wc-abs-count~
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (face-all-attributes 'mode-line-active)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+((:family . unspecified)
+ (:foundry . unspecified)
+ (:width . unspecified)
+ (:height . unspecified)
+ (:weight . unspecified)
+ (:slant . unspecified)
+ (:underline . unspecified)
+ (:overline . unspecified)
+ (:extend . unspecified)
+ (:strike-through . unspecified)
+ (:box . unspecified)
+ (:inverse-video . unspecified)
+ (:foreground . unspecified)
+ (:background . unspecified)
+ (:stipple . unspecified)
+ (:inherit . unspecified))
+#+end_src
 
 Face of /live-wc/ when displaying absolute count.
 
@@ -240,34 +328,74 @@ An unbound keymap within which, key-presses are bound to all above interactive c
 #+end_example
 
 ** ~live-wc-target~
-Default: =nil=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+(default-value 'live-wc-target)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+nil
+#+end_src
 
 Set word-count target.
 =0= is treated as =nil= (unset).
 Negative value indicates [[*Color][cap]].
 
 ** ~live-wc-narrow-to-org-subtree~
-Default: =t=
+Default:
+#+begin_src emacs-lisp :exports results :eval t
+(default-value 'live-wc-narrow-to-org-subtree)
+#+end_src
+
+#+RESULTS:
+: t
 
 Narrow (restrict) count to focused org subtree whenever possible; /i.e./ when inside an org-heading, restrict the word-count to that heading.
 Nevertheless, display unrestricted buffer-level word-counts when point is before the first org heading.
 The [[*Tool-tip][tool-tip]] always shows buffer-level counts.
 
 ** ~live-wc-org-headline-levels~
-Default: =nil=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+  (default-value 'live-wc-org-headline-levels)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+nil
+#+end_src
 
 Org headings up to this level are considered /true headings/ for word-count narrowing.
 Beyond this level, org-headings are regarded as mere list-items.
 If value is =nil=, it is derived from ~org-export-headline-levels~, which motivated this variable.
 
 ** ~live-wc-fraction~
-Default: =t=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+(default-value 'live-wc-fraction)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+t
+#+end_src
+
 
 When possible, display word count as fraction percent, otherwise, display absolute (raw) number.
 This respects the setting for [[*~live-wc-narrow-to-org-subtree~][live-wc-narrow-to-org-subtree]].
 
 ** ~live-wc-update-unmodified~
-Default: =t=
+Default:
+#+begin_src emacs-lisp :exports results :eval t :results value code
+(default-value 'live-wc-update-unmodified)
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+t
+#+end_src
+
 
 Ordinarily, /live-wc/ counters would continue collecting statistics [[*~live-wc-idle-sec~][periodically]] when Emacs is idle.
 However, if this starts causing unwanted CPU load (because the file size/complexity), ~live-wc-update-unmodified~ may be set to =nil=.

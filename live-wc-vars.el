@@ -21,39 +21,45 @@
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;;
+;; Internal local and global variable definitions for `live-wc'.
+
 ;;; Code:
 
 
 (defvar-local live-wc--buffer-stats nil
-  "Buffer stats for the current buffer")
+  "Buffer stats for the current buffer.")
 
 
 (defvar-local live-wc--region-stats nil
-  "regions stats for the current selection")
+  "Regions stats for the current selection.")
 
 
 (defvar-local live-wc--org-subtree-stats nil
-  "Count stats for the current org subtree")
+  "Count stats for the current org subtree.")
 
 
 (defvar-local live-wc--mem 'uninit
-  "Memory of displayed value for reuse (esp. while nothing changes)")
+  "Memory of last displayed value.
+
+For reuse while nothing changes)")
 
 
 (defvar-local live-wc--line-seg '(:eval (live-wc--display))
-  "Display live word count from `live-word-count-mode'")
+  "Display live word count from `live-wc-mode'.")
 
 
 (defvar live-wc--timers nil
   "Handle for live-wc timers.
 
-For future removal from idle run `timer-idle-list'.
-This is not a local variable. It is used by both,
+Remove each timer from `timer-idle-list'.
+This is not a local variable.  It is used by both,
 the minor mode and the globalized minor mode.")
 
 
 (defvar live-wc--enabled-buffers nil
-  "A list of buffers for which, live-wc-mode is enabled.")
+  "A list of buffers for which, `live-wc-mode' is enabled.")
 
 
 (dolist (internal

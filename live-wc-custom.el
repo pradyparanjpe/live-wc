@@ -20,8 +20,15 @@
 ;;
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+;;
+;;; Commentary:
+;;
+;; User customization for `live-wc'.
+;;
 ;;; Code:
+
+
+(require 'live-wc-predicates)
 
 
 (defgroup live-wc nil
@@ -46,14 +53,9 @@
   :group 'live-wc)
 
 
-(require 'live-wc-predicates)
-
 (defcustom live-wc-ignore-if
-  '((:ignore (lambda () (= (line-beginning-position) (line-end-position)))
-             :desc "blank lines")
-    (:ignore (lambda () (nth 4 (syntax-ppss))) :desc "comment (by property)")
-    (:ignore (lambda () (looking-at (format " *%s" comment-start-skip)))
-             :desc "comment (by marker)")
+  '((:ignore live-wc-line-blank-p :desc "blank line")
+    (:ignore live-wc-at-comment-p :desc "comment")
     (:ignore org-at-comment-p :desc "org comment")
     (:ignore org-at-keyword-p :desc "org keyword")
     (:ignore org-at-table-p :desc "org table")

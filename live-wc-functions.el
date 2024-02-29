@@ -20,12 +20,33 @@
 ;;
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+;;
+;;; Commentary:
+;;
+;; Live-wc internal functions.
+;;
 ;;; Code:
 
 
-(require 'live-wc-vars)
+;;; Autoloads exceptions
+;; According to style guide <https://github.com/bbatsov/emacs-lisp-style-guide>,
+;; Internal functions shouldn't be tagged with an \\=';;;###autoload\\=' cookie.
+;; However, functions in this file somehow need to be autoloaded for `live-wc'
+;; to start working uponing new buffers without throwing errors.
+;; Pradyumna Paranjape doesn't claim to completely understand \\='autoloads\\='
+;; completely, some or all of these autoloads may be replaced with an alternate,
+;; better working code. (Pradyumna Paranjape 2024-02-29)
 
+(require 'cl-lib)
+(require 'live-wc-vars)
+(require 'live-wc-locals)
+(require 'live-wc-custom)
+(require 'live-wc-colors)
+
+(declare-function live-wc--buffer-count "live-wc-bgcron")
+(declare-function live-wc--region-count "live-wc-bgcron")
+(declare-function live-wc--org-count "live-wc-bgcron")
+(defvar live-wc-seg-map)
 
 ;;;###autoload
 (defun live-wc--reset-stats (&optional mem)
@@ -82,7 +103,7 @@ and function `live-wc--region-count'.
 Store current stats in memory `live-wc--mem'.
 
 If new stats are unavailable, display from `live-wc--mem'"
-  (when (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)
+  (when (cl-notany #'derived-mode-p live-wc-unbind-modes)
     (if (not (or live-wc--region-stats
                  live-wc--buffer-stats live-wc--org-subtree-stats
                  (equal live-wc--mem 'uninit)))
@@ -126,7 +147,7 @@ If new stats are unavailable, display from `live-wc--mem'"
                              count-val
                              (when (and target (> 0 live-wc-target)) t))
                           ;; text is absolute or nil
-                          'live-wc-abs-count-face)))
+                          'live-wc-abs-count)))
         (live-wc--reset-stats
          (propertize
           text

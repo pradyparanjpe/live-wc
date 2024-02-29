@@ -23,15 +23,50 @@
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;;
+;; Live word count (`live-wc')
+;; ==================================
+;;
+;; Count text words (excluding code, properties, comments, ...) in real time.
+;;
+;; Features
+;; ------------
+;; - `live-wc-target' (local): Set word-count target for the buffer.
+;; - `live-wc-fraction' (local): Display word count as
+;;   absolute number of words (nil) or as fraction of target (t).
+;; - Face color of mode-line display changes according to the fraction.
+;; - Restrict word count to region if selected, optionally,
+;;   show as fraction of total.
+;; - Optionally, restrict word count to org-subtree using
+;;   `live-wc-narrow-to-org-subtree'.
+;; - Hover (mouse) over the segment for some more details.
+;; - Mouse-click to set target/fraction.
+;; - Bind keymap `live-wc-keymap' prefix to a suitable keybinding to access
+;;   pre-bound commands that toggle/set buffer-local variables.
+;;
+;; Minor mode
+;; ----------------
+;; `live-wc-mode': Inserts \\='live-wc\\=' segment in the mode-line.
+;; `global-live-wc-mode': Inserts the segment in default mode-line.
+;;
+;; Customization
+;; -------------------
+;; Customization group `live-wc' (group `convenience' and group `display') provides
+;; customization.
+;;
+;; `live-wc-mode' is auto-enabled for each mode listed in `global-live-wc-modes'
+;; (i.e. `text-mode' by default) and derivatives if the global mode is enabled.
+
 ;;; Code:
 
 (require 'live-wc-vars)
 (require 'live-wc-predicates)
 (require 'live-wc-custom)
 (require 'live-wc-locals)
+(require 'live-wc-colors)
 (require 'live-wc-functions)
 (require 'live-wc-commands)
-(require 'live-wc-colors)
 (require 'live-wc-bgcron)
 (require 'live-wc-mmode)
 (require 'live-wc-global-mmode)

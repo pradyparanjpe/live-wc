@@ -2,7 +2,7 @@ stages:
 - docs
 
 pages:
-  image: "iquiw/alpine-emacs:latest"
+  image: "pradyparanjpe/alpine-emacs:29.1"
   stage: docs
   before_script:
   - mkdir -p public

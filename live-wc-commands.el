@@ -23,6 +23,10 @@
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;;
+;; Commands exposed to the user.
+
 ;;; Code:
 
 
@@ -49,7 +53,7 @@
 
 ;;;###autoload
 (defun live-wc-toggle-subtree ()
-  "Toggle `live-wc-narrow-to-org-subtree'"
+  "Toggle `live-wc-narrow-to-org-subtree'."
   (interactive)
   (setq-local live-wc-narrow-to-org-subtree
               (not live-wc-narrow-to-org-subtree)))
@@ -57,14 +61,14 @@
 
 ;;;###autoload
 (defun live-wc-toggle-unmodified ()
-  "Toggle `live-wc-update-unmodified'"
+  "Toggle `live-wc-update-unmodified'."
   (interactive)
   (setq-local live-wc-update-unmodified (not live-wc-update-unmodified)))
 
 
 ;;;###autoload
 (defun live-wc-refresh ()
-  "Refresh (local) mode-line display segment"
+  "Refresh (local) mode-line display segment."
   (interactive)
   (live-wc--reset-stats 'uninit))
 

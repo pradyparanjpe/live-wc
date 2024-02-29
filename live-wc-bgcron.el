@@ -23,7 +23,7 @@
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ;;
-;;; Commentary
+;;; Commentary:
 ;; Functions in this file run in the background when Emacs is idle.
 ;;
 ;;; Code:
@@ -35,6 +35,17 @@
 (require 'live-wc-colors)
 (require 'live-wc-functions)
 
+;;; Org functions
+;; Followng functions are defined by `org-mode'.
+;; They are called only when major-mode is derived from `org-mode'.
+
+(declare-function org-at-heading-p nil)
+(declare-function org-back-to-heading-or-point-min nil)
+(declare-function org-current-level nil)
+(declare-function org-narrow-to-subtree nil)
+
+(defvar live-wc-mode)
+
 
 (defun live-wc--should-count-p ()
   "Should live-wc even count?"
@@ -43,7 +54,7 @@
        (or live-wc-update-unmodified
            (buffer-modified-p)
            (equal live-wc--mem 'uninit))
-       (cl-notany (lambda (x) (derived-mode-p x)) live-wc-unbind-modes)))
+       (cl-notany #'derived-mode-p live-wc-unbind-modes)))
 
 
 (defun live-wc--size-ok-p (bounds)
@@ -56,6 +67,7 @@ BOUNDS is same parameter/format as accepted by `live-wc--count-text-words'"
   (cond ((integerp bounds) (> live-wc-max-buffer-size (- bounds (point-min))))
         ((listp bounds)
          (> live-wc-max-buffer-size
+            ;; Cumulative of all regions.
             (seq-reduce (lambda (y x) (+ y (- (cdr x) (car x)))) bounds 0)))
         (bounds (> live-wc-max-buffer-size (- (point-max) (point-min))))))
 
@@ -73,7 +85,7 @@ If BOUNDS is t, count for the full buffer.
 If POINT-BEGIN and POINT-END are provided, count only that region.
 If only POINT-BEGIN is provided, count from that point to the end of buffer.
 If neither is provided, count the complete buffer."
-  (when-let* ((bounds (cond ((listp bounds) bounds) ; assume list of cons
+  (when-let* ((bounds (cond ((listp bounds) bounds) ; Assume list of cons.
                             ((integerp bounds) `((,(point-min) . ,bounds)))
                             (bounds `((,(point-min) . ,(point-max))))))
               (num-lines 0) (num-chars 0) (num-words 0))
@@ -107,7 +119,10 @@ If neither is provided, count the complete buffer."
 Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
   (unless (org-at-heading-p) (org-back-to-heading-or-point-min))
   (while (> (or (org-current-level) 0)
-            (or live-wc-org-headline-levels org-export-headline-levels))
+            (or live-wc-org-headline-levels
+                (if (boundp 'org-export-headline-levels)
+                    org-export-headline-levels
+                  3)))
     (unless (= (line-number-at-pos) 1) (forward-line -1))
     (org-back-to-heading-or-point-min))
   (beginning-of-line))
@@ -116,16 +131,13 @@ Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
 (defun live-wc--org-bounds ()
   "Bounds of the current org heading.
 
-(ensure that all subtrees are counted for total words)
-Compatible with the format of function `region-bounds',
-the format is list of cons.
-The first (and only) cons is (begin-point . end-point)
+Ensure that all subtrees are counted for total words.
+The format is list of cons following return format of function `region-bounds'.
+The only cons in the list is \\='(begin-point . end-point)\\='
 of the org heading at point.
 
-Headings at levels less than or equal to
-`live-wc-org-headline-levels', which defaults to
-`org-export-headline-levels'.
-return nil"
+Headings at levels beyond `live-wc-org-headline-levels',
+which defaults to `org-export-headline-levels', return nil."
   (interactive)
   (if (not (and (featurep 'org) (derived-mode-p 'org-mode))) nil
     (if (not (org-current-level)) nil
@@ -163,7 +175,7 @@ Evaluated as a background process."
 
 ;;;###autoload
 (defun live-wc--region-count ()
-  "Stats for selected region
+  "Stats for selected region.
 
 Evaluated as a background process."
   (setq-local live-wc--region-stats

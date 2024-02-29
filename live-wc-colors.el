@@ -22,29 +22,34 @@
 ;;
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;;
+;;; Commentary:
+;;
+;;; Customize and calculate colors
 
 ;;; Code:
 
 (require 'live-wc-custom)
+(require 'color)
 
 
 (defcustom live-wc-overflow-color "#ff00ff"
-  "Color of segment when count overflows `live-wc-target'"
+  "Color of segment when count overflows `live-wc-target'."
   :type 'color
   :group 'live-wc)
 
 
 (defcustom live-wc-bright 1.0
-  "Brightness of count fraction"
+  "Brightness of count fraction."
   :type '(number :tag " 0.0 <= bright <= 1.0")
   :group 'live-wc)
 
 
-(defface live-wc-abs-count-face
+(defface live-wc-abs-count
   `((t ,(face-all-attributes 'mode-line-active)))
   "Face for absolute word count.
 
-(Color for fraction is determined by function `live-wc--color')."
+Color for fraction is determined by function `live-wc--color'."
   :group 'live-wc)
 
 
@@ -90,7 +95,7 @@ Non-nil SWAP swaps \=:background\= and \=:foreground\=."
           `(:foreground ,(live-wc--invert-color-hex disp-color)
                         :background ,disp-color)
         `(:foreground ,disp-color))
-    'mode-line-inactive))
+    (face-all-attributes 'mode-line-active)))
 
 
 (provide 'live-wc-colors)

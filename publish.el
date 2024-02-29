@@ -5,21 +5,25 @@
 ;;
 ;;; Code:
 
+(message "Install Emacs Packages")
 (when (getenv "CI_PAGES_URL")
   (require 'package)
   (package-initialize)
   (add-to-list
    'package-archives '("elpa" . "https://elpa.gnu.org/packages/" ) t)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-  (package-refresh-contents)
-  (package-install 'htmlize)
+  (unless (package-installed-p 'htmlize)
+    (package-refresh-contents)
+    (package-install 'htmlize))
   (setq user-full-name nil))
 
 ;; org mode
+(message "Require Org: x-html, x-publish")
 (require 'org)
 (require 'ox-publish)
 (require 'ox-html)
 
+(message "Add Read The Org header.")
 (setq org-confirm-babel-evaluate nil)
 (setq org-html-head-include-default-style nil)
 (setq org-html-head "
@@ -38,6 +42,7 @@
 <script> $(\"table\").DataTable(); </script>
 ")
 
+(message "Define publish sections")
 (setq org-publish-project-alist
       '(("docs"
          :base-directory "doc/"
@@ -51,9 +56,13 @@
 (defun live-wc-publish--all ()
   "Publish everything."
   (mkdir "doc/" t)
+  (message "Require Package")
+  (add-to-list 'load-path (file-name-as-directory (expand-file-name ".")))
+  (require 'live-wc)
+  (message "Publish")
   (org-publish-all t nil))
 
 (unless (getenv "CI_PAGES_URL")
   (live-wc-publish--all))
 
-;;; .publish.el ends here
+;;; publish.el ends here

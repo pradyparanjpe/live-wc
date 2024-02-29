@@ -21,6 +21,10 @@
 ;; You should have received a copy of the GNU Lesser General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;;
+;; Globalized `live-wc-mode'.
+
 ;;; Code:
 
 
@@ -83,8 +87,17 @@ Reset to the value of `live-wc--original-default-mode-line' if non-nil."
 
 
 (defun live-wc--turn-on ()
-  "Determines if live-wc should be turned on for the buffer."
+  "Determine if live-wc should be turned on for the buffer."
   (unless (apply #'derived-mode-p live-wc-unbind-modes) (live-wc-mode 1)))
+
+
+(defcustom global-live-wc-modes nil
+  "List of major modes for which, `live-wc-mode' is enabled.
+
+Automatically when `global-live-wc-mode' is enabled."
+  :group 'live-wc
+  :type '(choice (boolean :tag "For all modes")
+                 (repeat (symbol :tag "Major mode"))))
 
 
 ;;;###autoload
