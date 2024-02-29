@@ -76,7 +76,7 @@ If neither is provided, count the complete buffer."
   (when-let* ((bounds (cond ((listp bounds) bounds) ; assume list of cons
                             ((integerp bounds) `((,(point-min) . ,bounds)))
                             (bounds `((,(point-min) . ,(point-max))))))
-              (num-lines 0) (num-bytes 0) (num-words 0))
+              (num-lines 0) (num-chars 0) (num-words 0))
     (save-excursion
       (dolist (region bounds)
         (let ((point-begin (car region)) (point-end (cdr region)))
@@ -89,7 +89,7 @@ If neither is provided, count the complete buffer."
                 (let ((line-beg (max (line-beginning-position) point-begin))
                       (line-end (min (line-end-position) point-end)))
                   (cl-incf num-lines)
-                  (cl-incf num-bytes (- line-end line-beg))
+                  (cl-incf num-chars (- line-end line-beg))
                   (cl-incf num-words (count-words line-beg line-end))))
               (forward-line 1)
 
@@ -98,7 +98,7 @@ If neither is provided, count the complete buffer."
                                         (goto-char (1+ (cdr non-text)))))
                     ((integerp non-text) (when (> (point) non-text)
                                            (goto-char (1+ non-text))))))))))
-    `((lines . ,num-lines) (bytes . ,num-bytes) (words . ,num-words))))
+    `((lines . ,num-lines) (chars . ,num-chars) (words . ,num-words))))
 
 
 (defun live-wc--goto-org-heading ()
