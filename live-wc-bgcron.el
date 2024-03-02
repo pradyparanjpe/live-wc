@@ -35,14 +35,11 @@
 (require 'live-wc-colors)
 (require 'live-wc-functions)
 
-;;; Org functions
-;; Followng functions are defined by `org-mode'.
-;; They are called only when major-mode is derived from `org-mode'.
 
-(declare-function org-at-heading-p nil)
-(declare-function org-back-to-heading-or-point-min nil)
+;;; Defined by `org-mode'
 (declare-function org-current-level nil)
 (declare-function org-narrow-to-subtree nil)
+
 
 (defvar live-wc-mode)
 
@@ -91,41 +88,24 @@ If neither is provided, count the complete buffer."
               (num-lines 0) (num-chars 0) (num-words 0))
     (save-excursion
       (dolist (region bounds)
-        (let ((point-begin (car region)) (point-end (cdr region)))
-          (goto-char point-begin)
-          (while (< (point) point-end)
-            (let ((non-text (cl-some (lambda (x)
-                                       (funcall (or (plist-get x :ignore) x)))
-                                     live-wc-ignore-if)))
-              (unless non-text
-                (let ((line-beg (max (line-beginning-position) point-begin))
-                      (line-end (min (line-end-position) point-end)))
-                  (cl-incf num-lines)
-                  (cl-incf num-chars (- line-end line-beg))
-                  (cl-incf num-words (count-words line-beg line-end))))
-              (forward-line 1)
-
-              ;; Skip all next non-code lines
-              (cond ((consp non-text) (when (> (point) (cdr non-text))
-                                        (goto-char (1+ (cdr non-text)))))
-                    ((integerp non-text) (when (> (point) non-text)
-                                           (goto-char (1+ non-text))))))))))
+        (let ((jump-to (car region)) (point-end (cdr region)))
+          (goto-char jump-to)
+          (while (< jump-to point-end)
+            (let ((non-text
+                   (cl-some (lambda (x) (funcall (or (plist-get x :ignore) x)))
+                            live-wc-ignore-if))
+                  (line-beg (max (line-beginning-position) jump-to))
+                  (line-end (min (line-end-position) point-end)))
+            (unless non-text
+              (cl-incf num-lines)
+              (cl-incf num-chars (- line-end line-beg))
+              (cl-incf num-words (count-words line-beg line-end)))
+            (setq jump-to (1+ (pcase (type-of non-text)
+                                ('cons (cdr non-text))
+                                ('integer non-text)
+                                ('symbol (line-end-position)))))
+            (goto-char jump-to))))))
     `((lines . ,num-lines) (chars . ,num-chars) (words . ,num-words))))
-
-
-(defun live-wc--goto-org-heading ()
-  "Move point to heading of current subtree.
-
-Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
-  (unless (org-at-heading-p) (org-back-to-heading-or-point-min))
-  (while (> (or (org-current-level) 0)
-            (or live-wc-org-headline-levels
-                (if (boundp 'org-export-headline-levels)
-                    org-export-headline-levels
-                  3)))
-    (unless (= (line-number-at-pos) 1) (forward-line -1))
-    (org-back-to-heading-or-point-min))
-  (beginning-of-line))
 
 
 (defun live-wc--org-bounds ()

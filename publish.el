@@ -56,11 +56,13 @@
 (defun live-wc-publish--all ()
   "Publish everything."
   (mkdir "doc/" t)
-  (message "Require Package")
-  (add-to-list 'load-path (file-name-as-directory (expand-file-name ".")))
-  (require 'live-wc)
   (message "Publish")
   (org-publish-all t nil))
+
+(when (getenv "CI_PAGES_URL")
+  (message "Require Package")
+  (add-to-list 'load-path (file-name-as-directory (expand-file-name ".")))
+  (require 'live-wc))
 
 (unless (getenv "CI_PAGES_URL")
   (live-wc-publish--all))

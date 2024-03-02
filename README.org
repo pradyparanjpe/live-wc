@@ -8,17 +8,16 @@
 #+EXPORT_FILE_NAME: index.html
 
 * Word-count in the mode-line
-Live-wc provides a mode line indicator that-
+/Live-wc/ provides a mode line indicator that:
 - Displays periodically updated word count.
-- Ignores non-text lines (source-code, comments, keywords …) using [[./doc/live-wc.org][customizable]] predicates.
-- Displays as absolute number OR as percentage of target set for the buffer.
+- Ignores non-text lines (source-code blocks, comments, keywords …) using [[./doc/live-wc.org][customizable]] predicates.
+- Restricts counts to =org-mode= sub-trees or selected regions. (Optional)
+- Displays as absolute number OR as percentage of target set for the buffer or org sub-tree.
   * Fraction color changes according to value.
-    Cyan: nearer to target (100%); Red: further from target (0%).
-- Restricts counts to org-mode sub-trees or selected regions. (Optional)
 - Displays [[./doc/live-wc.org][tool-tip]] with details upon mouse-hover about:
   * Number of lines (non-blank)
   * Number of characters (including spaces)
-  * Absolute words-count of the buffer.
+  * Absolute words-count of the buffer
   * Target word-count
 
 * Reference documentation
@@ -30,5 +29,5 @@ Copyright: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
 
 # Local Variables:
 # live-wc-fraction: t
-# live-wc-target: -1000
+# live-wc-target: -100
 # End:

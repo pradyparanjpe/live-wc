@@ -4,6 +4,7 @@
 #+language: en
 #+options: ^:{} ':t toc:t author:t email:t num:t
 #+PROPERTY: header-args :eval no
+#+PROPERTY: LIVE-WC-TARGET -900
 #+startup: overview
 #+macro: 0.0.3
 #+bind: org-html-htmlize-output-type css
@@ -68,13 +69,15 @@ As I use package: ([[https://github.com/slotThe/vc-use-package][vc-use-package]]
     :bind-keymap ("C-#" . live-wc-keymap))  ; optional
 #+end_src
 
-* Goals
+* Overview
 - Minor mode ~live-wc-mode~ displays live word count in mode-line.
 - Count text words in real-time (on the go).
 - [[*~live-wc-ignore-if~][Ignore]] lines that satisfy /arbitrary predicates/. (non-text, source-code, comments, ...)
 - Restrict word count to region when selected.
-- Org mode header word-counts.
-- Set word-count target / cap (i.e. goal / limit) for the buffer.
+- Org mode heading (subtree) word-counts.
+- Set word-count target / cap (i.e. goal / limit)
+  +  for the buffer
+  + for the org subtree
 - Display formats:
   + Absolute number of words
   + Fraction of
@@ -209,6 +212,7 @@ Default: ~most-positive-fixnum~
 Insert /live-wc/ count at this position on mode line.
 Indexing starts with =0=.
 This value is auto clipped between =0= and existing number of segments in the mode line.
+Consequently, a /large enough/ number such as ~most-positive-fixnum~ puts the segment at the end of the mode-line.
 
 #+ATTR_TEXINFO: :tag Tip
 #+ATTR_HTML: :tag Tip
@@ -318,6 +322,9 @@ Attempt to refresh word counts.
 An unbound keymap within which, key-presses are bound to all above interactive commands.
 
 * Buffer-locals
+:PROPERTIES:
+:LIVE-WC-TARGET: -500
+:END:
 - Following variables may be set locally for buffers in a [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Specifying-File-Variables.html][Local variables]] section:
 
 #+begin_example org
@@ -341,6 +348,50 @@ nil
 Set word-count target.
 =0= is treated as =nil= (unset).
 Negative value indicates [[*Color][cap]].
+
+*** Org subtree target
+:PROPERTIES:
+:LIVE-WC-TARGET: 100
+:END:
+Set word-count target (cap) for org subtree in the =:PROPERTIES:= drawer.
+If unset use buffer-local.
+Specifically, set target to =0= to disable ~live-wc-fraction~ for that subtree.
+The value set for using the =#+PROPERTY= keyword for the buffer works as the default fallback for all org subtrees.
+#+begin_src org :exports code
+  ,#+TITLE: Exmaple org file structure
+  ,#+PROPERTY: LIVE-WC-TARGET -400
+
+  ,* Level 1, Heading 1
+  =Level 1, Heading 1= has no special target or cap.
+  It respects the buffer-property value, =-400=.
+  ,#+begin_note
+  The buffer-local variable value for ~live-wc-target~ is =-3000=.
+  But org heading inherits the value set by keyword =#+PROPERTY:=.
+  Had =#+PROPERTY:= not set a value, buffer-local value of ~live-wc-target~ would have been inherited.
+  ,#+end_note
+
+  ,* Level 1, Heading 2
+  :PROPERTIES:
+  :LIVE-WC-TARGET: -500
+  :END:
+  =Level 1, Heading 2= holds a maximum of =500= words.
+
+  ,** Level 2
+  Level 2 is counted inside level 1, but doesn't have any special target or cap.
+  So, the parent's /i.e./ Level 1's cap of =-500= is respected.
+
+  ,*** Level 3
+  :PROPERTIES:
+  :LIVE-WC-TARGET: 100
+  :END:
+  Level 3 comes with its own target of =100= words.
+  Remember, the cap for the whole buffer is =-3000=.
+  That will be used if the point is before the first heading.
+
+  # Local Variables:
+  # live-wc-target: -3000
+  # end:
+#+end_src
 
 ** ~live-wc-narrow-to-org-subtree~
 Default:
@@ -407,4 +458,3 @@ However, if this starts causing unwanted CPU load (because the file size/complex
 #+begin_quote
 Setting to =nil= could be undesirable when /live-wc/ is used to navigate the buffer without modifying it, to count words in various org subtrees.
 #+end_quote
-

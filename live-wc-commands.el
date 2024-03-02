@@ -35,6 +35,64 @@
 (require 'live-wc-functions)
 
 
+(declare-function org-entry-get nil)  ; Defined by `org-mode'
+(declare-function org-set-property nil)  ; Defined by `org-mode'
+(declare-function org-current-level nil)  ; Defined by `org-mode'
+(declare-function outline-up-heading nil)  ; Required by `org-mode'
+
+
+;;;###autoload
+(defun live-wc-show-target ()
+  "Print (message) effective target in print area.
+
+If variable `live-wc-narrow-to-org-subtree' is non-nil and
+word count target is set for the heading scope print that.
+Else, print local variable `live-wc-target' if that is set."
+  (interactive)
+  (unless (when-let* ((target (live-wc--get-target))
+                      (target-type (if (< target 0) "cap" "target"))
+                      (value (if (= target 0) "overridden"
+                               (number-to-string (abs target))))
+                      (scope
+                       (if (eq live-wc-target target) (buffer-name)
+                         ;; We ought to be in org mode
+                         (save-mark-and-excursion
+                           (live-wc--goto-org-heading)
+                           (while-let ((org-level (org-current-level))
+                                       ((> org-level 1))
+                                       ((not (org-entry-get
+                                              (point) "LIVE-WC-TARGET"))))
+                             (outline-up-heading 1))
+                           (org-entry-get (point) "ITEM" t)))))
+            (message "Live word count %s for '%s' is %s"
+                     target-type scope value))
+    (user-error "No word count target in scope")))
+
+
+;;;###autoload
+(defun live-wc-set-org-subtree-target ()
+  "Set :PROPERTY: value for \\=':LIVE-WC-TARGET:\\=' for current org sub-tree."
+  (interactive)
+  (save-mark-and-excursion
+    (live-wc--goto-org-heading)
+    (unless
+        (when-let*
+            (((featurep 'org))
+             ((derived-mode-p 'org-mode))
+             (org-subtree-title (org-entry-get (point) "ITEM" t))
+             (org-subtree-target
+              (or (org-entry-get (point) "LIVE-WC-TARGET" t)
+                  :unset))
+             (wc-elem-target
+              (read-number
+               (format "Set word count target for '%s':\t" org-subtree-title)
+               (if (eq org-subtree-target :unset) 0
+                 (- (string-to-number org-subtree-target))))))
+          (org-set-property "LIVE-WC-TARGET" (number-to-string wc-elem-target))
+          org-subtree-target)
+      (user-error "Can't set in this context, use `live-wc-set-target'"))))
+
+
 ;;;###autoload
 (defun live-wc-set-target ()
   "Set value for `live-wc-target'."
@@ -84,6 +142,7 @@
 (defvar live-wc-keymap
   (let ((map (make-sparse-keymap "live-wc")))
     (define-key map (kbd "f") #'live-wc-toggle-format)
+    (define-key map (kbd "o") #'live-wc-set-org-subtree-target)
     (define-key map (kbd "r") #'live-wc-refresh)
     (define-key map (kbd "s") #'live-wc-toggle-subtree)
     (define-key map (kbd "t") #'live-wc-set-target)

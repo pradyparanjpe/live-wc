@@ -43,10 +43,51 @@
 (require 'live-wc-custom)
 (require 'live-wc-colors)
 
+
 (declare-function live-wc--buffer-count "live-wc-bgcron")
 (declare-function live-wc--region-count "live-wc-bgcron")
 (declare-function live-wc--org-count "live-wc-bgcron")
 (defvar live-wc-seg-map)
+
+
+;;; Defined by `org-mode'
+(declare-function org-current-level nil)
+(declare-function org-entry-get nil)
+(declare-function org-at-heading-p nil)
+(declare-function org-back-to-heading-or-point-min nil)
+
+
+;;;###autoload
+(defun live-wc--goto-org-heading ()
+  "Move point to heading of current subtree.
+
+Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
+  (unless (org-at-heading-p) (org-back-to-heading-or-point-min))
+  (while (> (or (org-current-level) 0)
+            (or live-wc-org-headline-levels
+                (if (boundp 'org-export-headline-levels)
+                    org-export-headline-levels
+                  3)))
+    (unless (= (line-number-at-pos) 1) (forward-line -1))
+    (org-back-to-heading-or-point-min))
+  (beginning-of-line))
+
+
+;;;###autoload
+(defun live-wc--get-target ()
+  "Get target for the buffer/org-heading.
+
+If in ORG heading with property \\=':LIVE-WC-TARGET:\\=' is set, return it.
+Else, return buffer-local value for `live-wc-target'."
+  (or (when-let (((featurep 'org))
+                 ((derived-mode-p 'org-mode))
+                 (live-wc-narrow-to-org-subtree)
+                 (org-subtree-target
+                  (when (org-current-level)
+                    (org-entry-get (point) "LIVE-WC-TARGET" t))))
+        (string-to-number org-subtree-target))
+      live-wc-target))
+
 
 ;;;###autoload
 (defun live-wc--reset-stats (&optional mem)
@@ -105,22 +146,23 @@ Store current stats in memory `live-wc--mem'.
 If new stats are unavailable, display from `live-wc--mem'"
   (when (cl-notany #'derived-mode-p live-wc-unbind-modes)
     (if (not (or live-wc--region-stats
-                 live-wc--buffer-stats live-wc--org-subtree-stats
+                 live-wc--buffer-stats
+                 live-wc--org-subtree-stats
                  (equal live-wc--mem 'uninit)))
-        ;; from memory
-        live-wc--mem
+        live-wc--mem  ; From memory
       ;; calculate
       (let* ((hint (mapconcat (lambda (x)
                                 (format "%d %s\n" (cdr x) (car x)))
                               live-wc--buffer-stats))
-             (target (when (and live-wc-target (/= live-wc-target 0))
-                       (abs live-wc-target)))
+             (stree-buff-target (live-wc--get-target))
+             (target (when (and stree-buff-target (/= stree-buff-target 0))
+                       (abs stree-buff-target)))
              (num-words (or (when live-wc-narrow-to-org-subtree
                               (alist-get 'words live-wc--org-subtree-stats))
                             (alist-get 'words live-wc--buffer-stats)))
-             ;; number of words selected
+             ;; Number of words selected
              (num-select (alist-get 'words live-wc--region-stats))
-             ;; count-val is either floatp (fraction), integerp
+             ;; Count-val is either floatp (fraction), integerp
              (count-val (cond
                          ;; Both stats are available and meant to be processed
                          ((and num-words num-select live-wc-fraction
@@ -145,7 +187,7 @@ If new stats are unavailable, display from `live-wc--mem'"
              (disp-face (if (floatp count-val)
                             (live-wc--color
                              count-val
-                             (when (and target (> 0 live-wc-target)) t))
+                             (when (and target (> 0 stree-buff-target)) t))
                           ;; text is absolute or nil
                           'live-wc-abs-count)))
         (live-wc--reset-stats
@@ -153,7 +195,9 @@ If new stats are unavailable, display from `live-wc--mem'"
           text
           'face disp-face
           'local-map live-wc-seg-map
-          'help-echo (concat hint (when target (format "of %d" target)))))))))
+          'help-echo (concat hint
+                             (when live-wc-target
+                               (format "of %d" (abs live-wc-target))))))))))
 
 
 (provide 'live-wc-functions)
