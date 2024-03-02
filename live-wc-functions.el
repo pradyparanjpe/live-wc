@@ -55,6 +55,7 @@
 (declare-function org-entry-get nil)
 (declare-function org-at-heading-p nil)
 (declare-function org-back-to-heading-or-point-min nil)
+(defvar org-link-any-re)
 
 
 ;;;###autoload
@@ -71,6 +72,32 @@ Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
     (unless (= (line-number-at-pos) 1) (forward-line -1))
     (org-back-to-heading-or-point-min))
   (beginning-of-line))
+
+
+;;;###autoload
+(defun live-wc--count-words (&optional start end _total)
+  "Count words between START and END discounting \\='some\\='.
+
+START and END are normally the start and end of the buffer; but if
+the region is active, START and END are the start and end of the region.
+
+Parameters are intended to be compatible with the function `count-words'.
+_TOTAL is always ignored (since this function is not *yet* interactive).
+
+Discount (this list will expand):
+- All `org-mode' link paths, preserve their description counts."
+  (let ((start (or start (if (use-region-p) (region-beginning) (point-min))))
+        (end (or end (if (use-region-p) (region-end) (point-max))))
+        (words (count-words start end)))
+    (when (and (featurep 'org) (derived-mode-p 'org-mode))
+      ;; discount link target (keep description) counts
+      (save-excursion
+        (goto-char start)
+        (while-let (((re-search-forward org-link-any-re end t))
+                    (beg (or (match-beginning 2) (match-beginning 0)))
+                    (end (or (match-end 2) (match-end 0))))
+          (setq words (- words (count-words beg end))))))
+    words))
 
 
 ;;;###autoload

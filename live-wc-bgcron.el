@@ -99,7 +99,7 @@ If neither is provided, count the complete buffer."
             (unless non-text
               (cl-incf num-lines)
               (cl-incf num-chars (- line-end line-beg))
-              (cl-incf num-words (count-words line-beg line-end)))
+              (cl-incf num-words (live-wc--count-words line-beg line-end)))
             (setq jump-to (1+ (pcase (type-of non-text)
                                 ('cons (cdr non-text))
                                 ('integer non-text)

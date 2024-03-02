@@ -36,7 +36,7 @@
 
 
 (defun live-wc-org-block-range ()
-  "Return non-nil if inside any block.
+  "Return (beginning . end) if inside any block.
 
 Does not necessitate Org \\='Special\\=' Block.
 

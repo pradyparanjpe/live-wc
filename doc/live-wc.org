@@ -73,6 +73,7 @@ As I use package: ([[https://github.com/slotThe/vc-use-package][vc-use-package]]
 - Minor mode ~live-wc-mode~ displays live word count in mode-line.
 - Count text words in real-time (on the go).
 - [[*~live-wc-ignore-if~][Ignore]] lines that satisfy /arbitrary predicates/. (non-text, source-code, comments, ...)
+- Discount =org-mode= link paths, preserving their description.
 - Restrict word count to region when selected.
 - Org mode heading (subtree) word-counts.
 - Set word-count target / cap (i.e. goal / limit)
@@ -87,6 +88,77 @@ As I use package: ([[https://github.com/slotThe/vc-use-package][vc-use-package]]
 - Enable globally with ~global-live-wc-mode~.
 - [[*Customize][Customization]] group: ~live-wc~.
 - Mode map ~live-wc-mode-map~.
+
+* Explanation for some features
+** Org mode
+The package doesn't ~(require org)~.
+If [[https://orgmode.org/][org-mode]] is unavailable, the file is treated as any ordinary text file, =org=-specific features then obviously become inaccessible.
+
+** Word count discounts
+*** Ignore predicates
+The variable [[*~live-wc-ignore-if~][live-wc-ignore-if]] may be customized to include any arbitrary predicate.
+/Live-wc/ ignores lines for which, any of the predicates returns non-nil.
+Generally, if the predicate returns an integer, /live-wc/ assumes that the predicate has identified the file contents up to that point for being ignored.
+If the predicate returns a cons, its =car= and =cdr= are assumed to provide boundary points for contents to be ignored.
+Some predicates listed below are defined in the file =live-wc-predicates=.
+#+begin_src emacs-lisp :exports results :eval t :cache yes :results value table
+  (let ((funclist))
+    (mapatoms
+     (lambda (x)
+       (when-let* (((fboundp x))                     ; does x name a function?
+                   (f (symbol-file x))
+                   ((string= (file-name-base f) "live-wc-predicates")))
+         (push `(,x ,(car (string-split (documentation x) "\n"))) funclist))))
+    (push '("Predicate" "Description") funclist)
+    funclist)
+#+end_src
+#+RESULTS[75d779b27740dbd9587cb20a034251840507a49a]:
+| Predicate               | Description                                   |
+| live-wc-at-comment-p    | Point is at comment.                          |
+| live-wc-org-block-range | Return (beginning . end) if inside any block. |
+| live-wc-line-blank-p    | Point is at a blank line.                     |
+
+*** Discount org link paths
+/Live-wc/ discounts words that form the path of a link, since they weren't really intended to be written by the author.
+But /live-wc/ does count the optional link descriptions.
+Links without description account for no counted words, so, embedded images of the form =[[file://path/to/image]]= is counted as =0= words, while =[[file://path/to/file.org][another org file]]= is counted as =3= words.
+
+** Example org file
+#+begin_src org :exports code
+  ,#+TITLE: Exmaple org file structure
+  ,#+PROPERTY: LIVE-WC-TARGET -400
+
+  ,* Level 1, Heading 1
+  =Level 1, Heading 1= has no special target or cap.
+  It respects the buffer-property value, =-400=.
+  ,#+begin_note
+  The buffer-local variable value for ~live-wc-target~ is =-3000=.
+  But org heading inherits the value set by keyword =#+PROPERTY:=.
+  Had =#+PROPERTY:= not set a value, buffer-local value of ~live-wc-target~ would have been inherited.
+  ,#+end_note
+
+  ,* Level 1, Heading 2
+  :PROPERTIES:
+  :LIVE-WC-TARGET: -500
+  :END:
+  =Level 1, Heading 2= holds a maximum of =500= words.
+
+  ,** Level 2
+  Level 2 is counted inside level 1, but doesn't have any special target or cap.
+  So, the parent's /i.e./ Level 1's cap of =-500= is respected.
+
+  ,*** Level 3
+  :PROPERTIES:
+  :LIVE-WC-TARGET: 100
+  :END:
+  Level 3 comes with its own target of =100= words.
+  Remember, the cap for the whole buffer is =-3000=.
+  That will be used if the point is before the first heading.
+
+  # Local Variables:
+  # live-wc-target: -3000
+  # end:
+#+end_src
 
 * Mode-line segment
 #+ATTR_HTML: :width 200px
@@ -357,41 +429,6 @@ Set word-count target (cap) for org subtree in the =:PROPERTIES:= drawer.
 If unset use buffer-local.
 Specifically, set target to =0= to disable ~live-wc-fraction~ for that subtree.
 The value set for using the =#+PROPERTY= keyword for the buffer works as the default fallback for all org subtrees.
-#+begin_src org :exports code
-  ,#+TITLE: Exmaple org file structure
-  ,#+PROPERTY: LIVE-WC-TARGET -400
-
-  ,* Level 1, Heading 1
-  =Level 1, Heading 1= has no special target or cap.
-  It respects the buffer-property value, =-400=.
-  ,#+begin_note
-  The buffer-local variable value for ~live-wc-target~ is =-3000=.
-  But org heading inherits the value set by keyword =#+PROPERTY:=.
-  Had =#+PROPERTY:= not set a value, buffer-local value of ~live-wc-target~ would have been inherited.
-  ,#+end_note
-
-  ,* Level 1, Heading 2
-  :PROPERTIES:
-  :LIVE-WC-TARGET: -500
-  :END:
-  =Level 1, Heading 2= holds a maximum of =500= words.
-
-  ,** Level 2
-  Level 2 is counted inside level 1, but doesn't have any special target or cap.
-  So, the parent's /i.e./ Level 1's cap of =-500= is respected.
-
-  ,*** Level 3
-  :PROPERTIES:
-  :LIVE-WC-TARGET: 100
-  :END:
-  Level 3 comes with its own target of =100= words.
-  Remember, the cap for the whole buffer is =-3000=.
-  That will be used if the point is before the first heading.
-
-  # Local Variables:
-  # live-wc-target: -3000
-  # end:
-#+end_src
 
 ** ~live-wc-narrow-to-org-subtree~
 Default:
