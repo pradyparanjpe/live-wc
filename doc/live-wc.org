@@ -333,18 +333,33 @@ Default:
 
 Brightness of /live-wc/ fraction. Interval: =[0.0, 1.0]=
 
-** ~live-wc-overflow-color~
+** ~live-wc-overflow~
 Default:
 #+begin_src emacs-lisp :exports results :eval t :results value code
-  (default-value 'live-wc-overflow-color)
+  (face-all-attributes 'live-wc-overflow)
 #+end_src
 
 #+RESULTS:
 #+begin_src emacs-lisp
-"#ff00ff"
+((:family . unspecified)
+ (:foundry . unspecified)
+ (:width . unspecified)
+ (:height . unspecified)
+ (:weight . unspecified)
+ (:slant . unspecified)
+ (:underline . unspecified)
+ (:overline . unspecified)
+ (:extend . unspecified)
+ (:strike-through . unspecified)
+ (:box . unspecified)
+ (:inverse-video . unspecified)
+ (:foreground . unspecified)
+ (:background . unspecified)
+ (:stipple . unspecified)
+ (:inherit . unspecified))
 #+end_src
 
-Color of segment when count overflows [[*~live-wc-target~][live-wc-target]].
+Face of segment when count overflows [[*~live-wc-target~][live-wc-target]].
 
 ** ~live-wc-abs-count~
 Default:
@@ -495,3 +510,10 @@ However, if this starts causing unwanted CPU load (because the file size/complex
 #+begin_quote
 Setting to =nil= could be undesirable when /live-wc/ is used to navigate the buffer without modifying it, to count words in various org subtrees.
 #+end_quote
+
+* Local Variables :noexport:
+
+# Local Variables:
+# live-wc-show-diff: t
+# eval: (live-wc-mode 1)
+# End:

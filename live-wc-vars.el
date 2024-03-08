@@ -46,6 +46,9 @@
 For reuse while nothing changes)")
 
 
+(defvar-local live-wc--scope-target nil
+  "Word-count target for the current scope.")
+
 (defvar-local live-wc--line-seg '(:eval (live-wc--display))
   "Display live word count from `live-wc-mode'.")
 
@@ -67,6 +70,7 @@ the minor mode and the globalized minor mode.")
            live-wc--retion-stats
            live-wc--org-subtree-stats
            live-wc--mem
+           live-wc--scope-target
            live-wc--line-seg
            live-wc--timers
            live-wc--enabled-buffers))

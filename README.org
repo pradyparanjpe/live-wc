@@ -29,5 +29,6 @@ Copyright: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
 
 # Local Variables:
 # live-wc-fraction: t
+# eval: (live-wc-mode 1)
 # live-wc-target: -200
 # End:

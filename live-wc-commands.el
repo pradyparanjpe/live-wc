@@ -50,11 +50,12 @@ word count target is set for the heading scope print that.
 Else, print local variable `live-wc-target' if that is set."
   (interactive)
   (unless (when-let* ((target (live-wc--get-target))
-                      (target-type (if (< target 0) "cap" "target"))
-                      (value (if (= target 0) "overridden"
-                               (number-to-string (abs target))))
+                      (value (if (= (cdr target) 0) "overridden"
+                               (format "%d to %d." (car target)
+                                       (cdr target))))
                       (scope
-                       (if (eq live-wc-target target) (buffer-name)
+                       (if (eq (car live-wc--scope-target) 'buffer)
+                           (buffer-name)
                          ;; We ought to be in org mode
                          (save-mark-and-excursion
                            (live-wc--goto-org-heading)
@@ -64,8 +65,7 @@ Else, print local variable `live-wc-target' if that is set."
                                               (point) "LIVE-WC-TARGET"))))
                              (outline-up-heading 1))
                            (org-entry-get (point) "ITEM" t)))))
-            (message "Live word count %s for '%s' is %s"
-                     target-type scope value))
+            (message "Live word count target for '%s' is %s" scope value))
     (user-error "No word count target in scope")))
 
 
@@ -81,25 +81,32 @@ Else, print local variable `live-wc-target' if that is set."
              ((derived-mode-p 'org-mode))
              (org-subtree-title (org-entry-get (point) "ITEM" t))
              (org-subtree-target
-              (or (org-entry-get (point) "LIVE-WC-TARGET" t)
-                  :unset))
-             (wc-elem-target
+              (or (live-wc--get-org-subtree-target) :unset))
+             (wc-elem-goal
               (read-number
-               (format "Set word count target for '%s':\t" org-subtree-title)
+               (format "Set word count goal for '%s':\t" org-subtree-title)
                (if (eq org-subtree-target :unset) 0
-                 (- (string-to-number org-subtree-target))))))
-          (org-set-property "LIVE-WC-TARGET" (number-to-string wc-elem-target))
+                 (live-wc--get-goal org-subtree-target))))
+             (wc-elem-cap
+              (read-number
+               (format "Set word count cap for '%s':\t" org-subtree-title)
+               (if (eq org-subtree-target :unset) 0
+                 (live-wc--get-cap org-subtree-target)))))
+          (org-set-property "LIVE-WC-TARGET"
+                            (format "%s" (cons wc-elem-goal wc-elem-cap)))
           org-subtree-target)
-      (user-error "Can't set in this context, use `live-wc-set-target'"))))
+    (user-error "Can't set in this context, use `live-wc-set-target'"))))
 
 
 ;;;###autoload
 (defun live-wc-set-target ()
   "Set value for `live-wc-target'."
   (interactive)
-  (let ((wc-target (read-number "Set word count target:\t"
-                                (if live-wc-target (- live-wc-target) 0))))
-    (setq-local live-wc-target (if (= 0 wc-target) nil wc-target))))
+  (let ((wc-goal (read-number "Set word count goal:\t"
+                              (if live-wc-target (live-wc--get-goal) 0)))
+        (wc-cap (read-number "Set word count cap:\t"
+                             (if live-wc-target (live-wc--get-cap) 0))))
+    (setq-local live-wc-target (cons wc-goal wc-cap))))
 
 
 ;;;###autoload
@@ -129,14 +136,6 @@ Else, print local variable `live-wc-target' if that is set."
   "Refresh (local) mode-line display segment."
   (interactive)
   (live-wc--reset-stats 'uninit))
-
-
-(defvar live-wc-seg-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line down-mouse-1] #'live-wc-set-target)
-    (define-key map [mode-line down-mouse-3] #'live-wc-toggle-format)
-    map)
-  "Keymap to display on word-count indicator.")
 
 
 (defvar live-wc-keymap

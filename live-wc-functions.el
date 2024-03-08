@@ -47,7 +47,6 @@
 (declare-function live-wc--buffer-count "live-wc-bgcron")
 (declare-function live-wc--region-count "live-wc-bgcron")
 (declare-function live-wc--org-count "live-wc-bgcron")
-(defvar live-wc-seg-map)
 
 
 ;;; Defined by `org-mode'
@@ -56,9 +55,9 @@
 (declare-function org-at-heading-p nil)
 (declare-function org-back-to-heading-or-point-min nil)
 (defvar org-link-any-re)
+(defvar org-keyword-properties)
 
 
-;;;###autoload
 (defun live-wc--goto-org-heading ()
   "Move point to heading of current subtree.
 
@@ -74,7 +73,6 @@ Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
   (beginning-of-line))
 
 
-;;;###autoload
 (defun live-wc--count-words (&optional start end _total)
   "Count words between START and END discounting \\='some\\='.
 
@@ -100,23 +98,168 @@ Discount (this list will expand):
     words))
 
 
-;;;###autoload
-(defun live-wc--get-target ()
+(defun live-wc--parse-target (target &optional inner)
+  "Parse TARGET info standard from (GOAL . CAP).
+
+TARGET is interpreted as follows:
+- cons:      target = TARGET
+- positive:  target = (TARGET . `most-positive-fixnum')
+- negative:  target = (0 . -TARGET)
+- otherwise: target = nil.  (including 0)
+User must confirm that 0 <= GOAL <= CAP, are `numberp'.
+
+When optional INNER is provided, it must be a cons of positive numbers.
+Any of the cons elements, which is `integerp'
+overwrites the corresponding target cons element.
+Otherwise, elementwise product with target is returned.
+Types of returned numbers (float/integer) are same as types of target."
+  (if (not target) inner
+    (when-let ((target (cond
+                        ((equal target 0) nil)
+                        ((consp target) target)
+                        ((numberp target)
+                         (if (< 0 target) (cons target most-positive-fixnum)
+                           (cons 0 (- target))))))
+               (inner (or inner '(1.0 . 1.0))))
+      (apply #'cons
+             (mapcar (lambda (func)
+                       (let ((tar-cxr (funcall func target))
+                             (scl-cxr (funcall func inner)))
+                         (if (integerp scl-cxr) scl-cxr
+                           (if (floatp tar-cxr) (* tar-cxr scl-cxr)
+                             (ceiling (* tar-cxr scl-cxr))))))
+                     '(car cdr))))))
+
+
+(defun live-wc--get-org-subtree-target ()
+  "Get target for the org subtree.
+
+If in ORG heading with property \\=':LIVE-WC-TARGET:\\=' is set,
+compose its value based on all parents and return it.  Values may be floats."
+  (when (and (featurep 'org)
+             (derived-mode-p 'org-mode)
+             live-wc-narrow-to-org-subtree
+             (org-current-level))
+    (let ((buffer-kw-prop
+           (car (read-from-string
+                 (or (cdr (assoc "LIVE-WC-TARGET" org-keyword-properties)) "nil"))))
+          (subtree-target))
+      (save-excursion
+        (live-wc--goto-org-heading)
+        (catch 'exit
+          (while (org-current-level)
+            (setq subtree-target
+                  (or
+                   (when-let
+                       ((parent-target
+                         (org-entry-get (point) "LIVE-WC-TARGET")))
+                     (live-wc--parse-target
+                      (car (read-from-string parent-target))
+                      subtree-target))
+                   subtree-target))
+            (if (< 1 (org-current-level)) (throw 'exit nil)
+              (forward-line -1)
+              (org-back-to-heading-or-point-min)))))
+      (live-wc--parse-target buffer-kw-prop subtree-target))))
+
+
+(defun live-wc--get-target (&optional renew)
   "Get target for the buffer/org-heading.
 
-If in ORG heading with property \\=':LIVE-WC-TARGET:\\=' is set, return it.
-Else, return buffer-local value for `live-wc-target'."
-  (or (when-let (((featurep 'org))
-                 ((derived-mode-p 'org-mode))
-                 (live-wc-narrow-to-org-subtree)
-                 (org-subtree-target
-                  (when (org-current-level)
-                    (org-entry-get (point) "LIVE-WC-TARGET" t))))
-        (string-to-number org-subtree-target))
-      live-wc-target))
+If RENEW is non-nil or `live-wc--scope-target' is nil,
+Calculate scope target as follows.
+If in ORG heading with property \\=':LIVE-WC-TARGET:\\=' is set,
+compose its value based on all parents and buffer-target, then, use it.
+Else, use buffer-local value for `live-wc-target'.
+Set it to `live-wc--scope-target'.
+
+Return `live-wc--scope-target'."
+  (when (or (not live-wc--scope-target) renew)
+    (let* ((subtree-target (live-wc--get-org-subtree-target))
+           (scope (if subtree-target 'subtree 'buffer))
+           (buffer-target (live-wc--parse-target live-wc-target))
+           (scope-target (live-wc--parse-target buffer-target subtree-target)))
+      (setq-local
+       live-wc--scope-target
+       (when scope-target
+         (cons scope (cons (ceiling (car scope-target))
+                           (ceiling (cdr scope-target))))))))
+  (cdr live-wc--scope-target))
 
 
-;;;###autoload
+(defun live-wc--set-target ()
+  "Set scope-target for current scope."
+  (live-wc--get-target t))
+
+
+(defun live-wc--get-goal (&optional target)
+  "Get goal for the scope.
+
+If TARGET is supplied, else use target from `live-wc--get-target'"
+  (car (or (live-wc--parse-target target) (live-wc--get-target))))
+
+
+(defun live-wc--get-cap (&optional target)
+  "Get goal for the scope.
+
+If TARGET is supplied, else use target from `live-wc--get-target'"
+  (cdr (or (live-wc--parse-target target) (live-wc--get-target))))
+
+
+(defun live-wc--make-frac (count &optional target)
+  "Convert COUNT into appropriate fraction.
+
+If TARGET is a number, return COUNT / TARGET if (COUNT /= 0), else COUNT.
+If TARGET is of the form \\='(GOAL . CAP)
+If CAP is zero,  return COUNT.
+If GOAL = CAP,   return (COUNT - GOAL) / GOAL.
+If COUNT < GOAL, return (COUNT - GOAL) / GOAL (negative fraction).
+Else,            return (COUNT - GOAL) / (CAP - GOAL).
+If TARGET is nil, use `live-wc--get-target'."
+  (if (numberp target) (if (= 0 target) count (/ (float count) target))
+    (or (when-let* ((live-wc-fraction)
+                    (target (or target (live-wc--get-target)))
+                    (cap (live-wc--get-cap target))
+                    ((/= 0 cap))
+                    (goal (live-wc--get-goal target))
+                    (divisor (cond ((or (= cap goal) (> goal count)) goal)
+                                   (t (- cap goal)))))
+          (/ (float (- count goal)) divisor))
+        count)))
+
+
+(defun live-wc--make-diff (count &optional target)
+  "Convert COUNT into signed difference.
+
+If TARGET is a number, return COUNT - TARGET.
+If TARGET is nil, use `live-wc--get-target'.
+If TARGET is of the form \\='(GOAL . CAP)
+
+Return nil if:
+- `live-wc-show-diff' is nil
+- Scope target is nil
+- count is nil
+- CAP = 0 (overridden)
+- GOAL < COUNT < CAP
+
+If COUNT < GOAL, DIFF = COUNT - GOAL.
+If COUNT > CAP,  DIFF = COUNT - CAP."
+  (when-let* ((live-wc-show-diff)
+              (count)
+              (target (or target (live-wc--get-target)))
+              (diff (if (numberp target)
+                        (when-let ((abs-diff (- count target))
+                                   ((/= 0 abs-diff)))
+                          abs-diff)
+                      (when-let* ((cap (live-wc--get-cap target))
+                                  ((/= 0 cap))
+                                  (goal (live-wc--get-goal target))
+                                  ((or (< count goal) (< cap count))))
+                        (- count (if (< count goal) goal cap)))))
+              (diff-str (number-to-string diff)))
+    (concat "(" (when (< 0 diff) "+") diff-str ")")))
+
+
 (defun live-wc--reset-stats (&optional mem)
   "Reset region and buffer stats, and memory.
 
@@ -133,17 +276,16 @@ When called interactively, reset all to nil, return nil."
   mem)
 
 
-;;;###autoload
 (defun live-wc--add-timers-maybe ()
   "Add timers to `timer-idle-list' to count buffer periodically."
   (unless live-wc--timers
     (setq live-wc--timers
           `(,(run-with-idle-timer live-wc-idle-sec t #'live-wc--buffer-count)
             ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--region-count)
-            ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--org-count)))))
+            ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--org-count)
+            ,(run-with-idle-timer live-wc-idle-sec t #'live-wc--set-target)))))
 
 
-;;;###autoload
 (defun live-wc--cancel-timers-maybe ()
   "Clean up timers if no buffer (or global) is using it any more."
   (setq live-wc--enabled-buffers
@@ -156,7 +298,6 @@ When called interactively, reset all to nil, return nil."
       (setq live-wc--timers nil))))
 
 
-;;;###autoload
 (defun live-wc--display ()
   ;; This function is called by mode-line again-and-again
   "Generate display string (with properties) for mode-line.
@@ -181,9 +322,6 @@ If new stats are unavailable, display from `live-wc--mem'"
       (let* ((hint (mapconcat (lambda (x)
                                 (format "%d %s\n" (cdr x) (car x)))
                               live-wc--buffer-stats))
-             (stree-buff-target (live-wc--get-target))
-             (target (when (and stree-buff-target (/= stree-buff-target 0))
-                       (abs stree-buff-target)))
              (num-words (or (when live-wc-narrow-to-org-subtree
                               (alist-get 'words live-wc--org-subtree-stats))
                             (alist-get 'words live-wc--buffer-stats)))
@@ -194,37 +332,29 @@ If new stats are unavailable, display from `live-wc--mem'"
                          ;; Both stats are available and meant to be processed
                          ((and num-words num-select live-wc-fraction
                                (/= num-words 0))
-                          (/ (float num-select) num-words))
+                          (live-wc--make-frac num-select num-words))
                          ;; Only region stats are available
-                         (num-select
-                          (if (and target live-wc-fraction)
-                              (/ (float num-select) target)
-                            num-select))
+                         ((and num-select live-wc-fraction)
+                          (live-wc--make-frac num-select))
                          ;; Only buffer stats are available
-                         (t (if (and num-words target live-wc-fraction)
-                                (/ (float num-words) target)
-                              num-words))))
-             (text (cond ((floatp count-val)
-                          (format live-wc-frac-format (* 100 count-val)))
-                         ((integerp count-val)
-                          (format live-wc-abs-format count-val))
-                         (t (display-warning
-                             '(live-wc format) "Bad count-val type" :debug)
-                            "")))
-             (disp-face (if (floatp count-val)
-                            (live-wc--color
-                             count-val
-                             (when (and target (> 0 stree-buff-target)) t))
-                          ;; text is absolute or nil
-                          'live-wc-abs-count)))
+                         (t (live-wc--make-frac num-words))))
+             (text (concat
+                    (cond ((floatp count-val)
+                           (format live-wc-frac-format (* 100 count-val)))
+                          ((integerp count-val)
+                           (format live-wc-abs-format count-val))
+                          (t (display-warning
+                              '(live-wc format) "Bad count-val type" :debug)
+                             ""))
+                    (live-wc--make-diff num-words)))
+             (disp-face (live-wc--color count-val)))
         (live-wc--reset-stats
          (propertize
           text
           'face disp-face
-          'local-map live-wc-seg-map
           'help-echo (concat hint
-                             (when live-wc-target
-                               (format "of %d" (abs live-wc-target))))))))))
+                             (when-let (cap (live-wc--get-cap live-wc-target))
+                               (format "of %d" cap)))))))))
 
 
 (provide 'live-wc-functions)

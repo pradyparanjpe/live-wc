@@ -113,5 +113,11 @@ The default value `most-positive-fixnum' puts the segment at the end."
   :group 'live-wc)
 
 
+(defcustom live-wc-show-diff t
+  "Show difference between count and target."
+  :type 'boolean
+  :group 'live-wc)
+
+
 (provide 'live-wc-custom)
 ;;; live-wc-custom.el ends here
