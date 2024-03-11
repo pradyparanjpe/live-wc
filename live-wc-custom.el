@@ -54,18 +54,16 @@
 
 
 (defcustom live-wc-ignore-if
-  '((:ignore live-wc-line-blank-p :desc "blank line")
-    (:ignore live-wc-at-comment-p :desc "comment")
-    (:ignore org-at-comment-p :desc "org comment")
-    (:ignore org-at-keyword-p :desc "org keyword")
-    (:ignore org-at-table-p :desc "org table")
-    (:ignore org-at-TBLFM-p :desc "org table formula")
-    (:ignore org-at-table.el-p :desc "table.el")
-    (:ignore org-at-heading-p :desc "org heading")
-    (:ignore org-at-property-p :desc "org property")
-    (:ignore org-at-drawer-p :desc "org drawer")
-    (:ignore org-at-property-drawer-p :desc "property drawer's first line")
-    (:ignore live-wc-org-block-range :desc "any org block"))
+  '((:ignore live-wc-org-block-range  :desc "any org block")
+    (:ignore live-wc-org-drawer-range :desc "any org drawer")
+    (:ignore org-at-table-p           :desc "org table")
+    (:ignore org-at-table.el-p        :desc "table.el")
+    (:ignore org-at-TBLFM-p           :desc "org table formula")
+    (:ignore org-at-keyword-p         :desc "org keyword")
+    (:ignore org-at-comment-p         :desc "org comment")
+    (:ignore org-at-heading-p         :desc "org heading")
+    (:ignore live-wc-at-comment-p     :desc "comment")
+    (:ignore live-wc-line-blank-p     :desc "blank line"))
 
   "Where any of the functions returns non-nil, ignore the line.
 

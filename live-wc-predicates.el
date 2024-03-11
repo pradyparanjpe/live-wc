@@ -35,38 +35,86 @@
 (declare-function org-in-regexp nil)  ; org declares this function
 
 
-(defun live-wc-org-block-range ()
-  "Return (beginning . end) if inside any block.
+(defun live-wc--build-cont-end-re (cont-begin-re cont-begin-match cont-end-re)
+  "Build live-wc--cont-end-regexp.
 
-Does not necessitate Org \\='Special\\=' Block.
+Using supplied CONT-END-RE, CONT-BEGIN-RE and CONT-BEGIN-MATCH."
+  (save-match-data
+    (let* ((re-grpnum-re "\\\\\\(?1:[0-9]+\\)")
+           (cont-end-parts (split-string cont-end-re re-grpnum-re))
+           (cont-end-refs
+            (let ((re-pos 0) refs)
+              (while (string-match re-grpnum-re cont-end-re re-pos)
+                (push (string-to-number (match-string 1 cont-end-re)) refs)
+                (setq re-pos (match-end 1)))
+              (reverse refs)))
+           (cont-end-refs-alist
+            (progn (string-match cont-begin-re cont-begin-match)
+                   (mapcar (lambda (x) (match-string x cont-begin-match))
+                           cont-end-refs))))
+      (apply #'concat
+             (mapcan (lambda (n)
+                       (list (nth n cont-end-parts)
+                             (nth n cont-end-refs-alist)))
+                     (number-sequence
+                      0 (length cont-end-refs-alist)))))))
 
-This function is heavily adapted from `org-between-regexps-p'.
-Gratefully copied from https://scripter.co/splitting-an-org-block-into-two/
-Under the function named \\='modi/org-in-any-block-p\\='."
+
+(defun live-wc--cont-range (cont-begin-re cont-end-re &optional after before)
+  "Return (beginning . end) if inside a container.
+
+Blocks, drawers, properties of `org-mode' are some examples of containers.
+Generally, it is region between CONT-BEGIN-RE and CONT-END-RE.
+
+CONT-BEGIN-RE and CONT-END-RE are searched between points AFTER and BEFORE.
+If either of AFTER and BEFORE are nil, it is discovered as the previous and
+next outline heading.  Such discovery may be overridden by supplying the value
+\\=':nil\\=', which enforces the nil value.
+
+Occurrences of \\\\1, \\\\2, ... in CONT-END-RE are replaced with corresponding
+match groups of CONT-BEGIN-RE."
+  (save-match-data
+    (when-let*
+        ((case-fold-search t)
+         (cont-end-re)
+         (after (or after (save-excursion (outline-previous-heading)) :nil))
+         (before (or before (save-excursion (outline-next-heading)) :nil))
+         (pos (point))
+         ((forward-line 0))
+         ((re-search-forward cont-begin-re (line-end-position) t))
+         ((goto-char (match-end 0)))
+         (built-cont-end-re
+          (live-wc--build-cont-end-re cont-begin-re
+                                      (match-string-no-properties 0)
+                                      cont-end-re)))
+
+      (if (not (re-search-forward
+                built-cont-end-re (unless (eq :nil before) before) t))
+          (not (goto-char pos))
+        (goto-char (match-end 0))
+        :recheck))))
+
+
+(defun live-wc-org-block-range (&optional after before)
+  "Range of current org block.
+
+AFTER and BEFORE are passed on to `live-wc--cont-range'.
+
+Block is identified by #+BEGIN_<> and #+END_<>
+and need not be special block."
   (if (not (featurep 'org)) nil
-    (save-match-data
-      (let ((block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
-            (limit-up (save-excursion (outline-previous-heading)))
-            (limit-down (save-excursion (outline-next-heading)))
-            (case-fold-search t) (pos (point)) beg end)
-        (save-excursion
-          ;; Point is on a block when on BLOCK-BEGIN-RE or if
-          ;; BLOCK-BEGIN-RE can be found before it...
-          (and (or (org-in-regexp block-begin-re)
-                   (re-search-backward block-begin-re limit-up :noerror))
-               (setq beg (match-beginning 0))
-               ;; ... and BLOCK-END-RE after it...
-               (let ((block-end-re (concat "^[[:blank:]]*#\\+end_"
-                                           (match-string-no-properties 1)
-                                           "\\( .*\\)*$")))
-                 (goto-char (match-end 0))
-                 (re-search-forward block-end-re limit-down :noerror))
-               (> (setq end (match-end 0)) pos)
-               ;; ... without another BLOCK-BEGIN-RE in-between.
-               (goto-char (match-beginning 0))
-               (not (re-search-backward block-begin-re (1+ beg) :noerror))
-               ;; Return value.
-               (cons beg end)))))))
+    (live-wc--cont-range "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$"
+                         "^[[:blank:]]*#\\+end_\\1\\( .*\\)*$" after before)))
+
+
+(defun live-wc-org-drawer-range (&optional after before)
+  "Range of current drawer.
+
+AFTER and BEFORE are passed on to `live-wc--cont-range'."
+  (if (not (featurep 'org)) nil
+    (live-wc--cont-range
+     "^[[:blank:]]*:\\(\\(?:\\w\\|[-_]\\)+\\):\\(?: .*\\)*$"
+     "^[[:blank:]]*:END:\\(?: .*\\)*$" after before)))
 
 
 (defun live-wc-line-blank-p ()
