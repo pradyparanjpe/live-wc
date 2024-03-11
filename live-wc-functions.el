@@ -142,7 +142,8 @@ compose its value based on all parents and return it.  Values may be floats."
              (org-current-level))
     (let ((buffer-kw-prop
            (car (read-from-string
-                 (or (cdr (assoc "LIVE-WC-TARGET" org-keyword-properties)) "nil"))))
+                 (or (cdr (assoc "LIVE-WC-TARGET" org-keyword-properties))
+                     "nil"))))
           (subtree-target))
       (save-excursion
         (live-wc--goto-org-heading)
@@ -157,7 +158,7 @@ compose its value based on all parents and return it.  Values may be floats."
                       (car (read-from-string parent-target))
                       subtree-target))
                    subtree-target))
-            (if (< 1 (org-current-level)) (throw 'exit nil)
+            (if (<= 1 (org-current-level)) (throw 'exit nil)
               (forward-line -1)
               (org-back-to-heading-or-point-min)))))
       (live-wc--parse-target buffer-kw-prop subtree-target))))
