@@ -70,12 +70,39 @@
   "Where any of the functions returns non-nil, ignore the line.
 
 Specifically, if the function returns
-  - an integer: jump next to that point (+1).
-  - cons cell: jump next to its cdr
-  - any other non-nil: forward 1 line."
+- \\=':recheck\\='       : predicate moved point, so recheck current line.
+- an integer       : jump next to that point (+1).
+- cons cell        : jump next to its cdr
+- any other symbol : forward 1 line."
   :type '(repeat (choice (function :tag "predicate")
                          (plist ((const :ignore) (function :tag "predicate"))
                                 ((const :desc) (string :tag "description")))))
+  :group 'live-wc)
+
+
+(defcustom live-wc-discount-inline
+  '((:regex org-link-any-re :groups (2) :predicates nil :modes (org))
+    (:regex org-link-any-re :groups (5) :predicates nil :modes (org))
+    (:regex org-link-any-re :groups (8) :predicates nil :modes (org))
+    (:regex markdown-regex-link-inline :groups (5 6 7 8) :predicates nil
+            :modes (markdown))
+    (:regex org-radio-target-regexp :groups (1) :predicates nil :modes (org)))
+  "Discount matches of regular expressions.
+
+For each plist, following properties must be defined
+\\=':regex\\='     : Regular expression string to search.
+\\=':group\\='     : Group to consider as regular expression.
+\\=':predicate\\=' : Discount regex only if this returns t.
+\\=':modes\\='     : Discount only for listed mode stems.  (-mode is added)"
+  :type '(repeat
+          (plist
+           ((const :regex) (choice (variable :tag "re variable")
+                                   (string :tag "regular expression")))
+           ((const :groups) (repeat (natnum :tag "drop this group match")))
+           ((const :predicates)
+            (repeat (sexp :tag "eval this, discount only if t")))
+           ((const :modes)
+            (repeat (symbol :tag "'-mode' discount for this mode")))))
   :group 'live-wc)
 
 
@@ -90,7 +117,7 @@ Specifically, if the function returns
   "Insert live-wc count at this position on mode line.
 
 Remember while setting value that the first two parts of the mode-line
-are often \=%e\= and `mode-line-front-space'.
+are often \\='%e\\=' and `mode-line-front-space'.
 
 The default value `most-positive-fixnum' puts the segment at the end."
   :type 'number
@@ -100,7 +127,7 @@ The default value `most-positive-fixnum' puts the segment at the end."
 (defcustom live-wc-abs-format "¶:%d"
   "Format of live absolute word count.
 
-\=%d\= (formatted integer) is replaced by the count."
+\\='%d\\=' (formatted integer) is replaced by the count."
   :type '(string :tag "Must contain a %d")
   :group 'live-wc)
 
@@ -108,7 +135,7 @@ The default value `most-positive-fixnum' puts the segment at the end."
 (defcustom live-wc-frac-format "¶:%2.2f%%%%"
   "Format of live word count when expressed as a fraction.
 
-%f (formatted decimal) is replaced by the fraction."
+\\='%f\\=' (formatted decimal) is replaced by the fraction."
   :type '(string :tag "Must contain a %f")
   :group 'live-wc)
 

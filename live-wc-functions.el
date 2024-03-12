@@ -73,6 +73,45 @@ Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
   (beginning-of-line))
 
 
+(defun live-wc--string-drop (string drop)
+  "Drop from STRING and return residue.
+
+DROP is a list of cons, each corresponding to regions to be dropped
+from the original string.  Regions from their car to cdr is dropped.
+Currently does not support overlapping regions"
+  (let ((residue string))
+    (setq drop (sort drop (lambda (x y) (< (car x) (car y)))))
+    (dolist (i-pair drop)
+      (setq drop
+            (mapcar
+             (lambda (j-pair)
+               (if (>= (car i-pair) (car j-pair)) j-pair
+                 (let ((pre-dropped (- (cdr i-pair) (car i-pair))))
+                   (cons (- (car j-pair) pre-dropped)
+                         (- (cdr j-pair) pre-dropped)))))
+             drop)))
+    (dolist (pair drop)
+      (setq residue (concat (substring residue 0 (car pair))
+                            (substring residue (cdr pair)))))
+    residue))
+
+
+(defun live-wc--count-occurrences (regex string)
+  "Count occurrences of REGEX in STRING."
+  (live-wc--recursive-count regex string 0 0))
+
+
+;; Gratefully derived from
+;; https://stackoverflow.com/questions/11847547/emacs-regexp-count-occurrences
+
+
+(defun live-wc--recursive-count (regex string start counter)
+  "Recursively count REGEX in STRING starting at START incrementing COUNTER."
+  (if (string-match regex string start)
+      (live-wc--recursive-count regex string (match-end 0) (+ counter 1))
+    counter))
+
+
 (defun live-wc--count-words (&optional start end _total)
   "Count words between START and END discounting \\='some\\='.
 
@@ -83,19 +122,30 @@ Parameters are intended to be compatible with the function `count-words'.
 _TOTAL is always ignored (since this function is not *yet* interactive).
 
 Discount (this list will expand):
-- All `org-mode' link paths, preserve their description counts."
-  (let ((start (or start (if (use-region-p) (region-beginning) (point-min))))
-        (end (or end (if (use-region-p) (region-end) (point-max))))
-        (words (count-words start end)))
-    (when (and (featurep 'org) (derived-mode-p 'org-mode))
-      ;; discount link target (keep description) counts
-      (save-excursion
-        (goto-char start)
-        (while-let (((re-search-forward org-link-any-re end t))
-                    (beg (or (match-beginning 2) (match-beginning 0)))
-                    (end (or (match-end 2) (match-end 0))))
-          (setq words (- words (count-words beg end))))))
-    words))
+- All `org-mode' link paths, preserve their description counts.
+- All `markdown-mode' link paths, preserve their description counts."
+  (let* ((start (or start (if (use-region-p) (region-beginning) (point-min))))
+         (end (or end (if (use-region-p) (region-end) (point-max))))
+         (line (buffer-substring-no-properties start end)))
+    (dolist (discount live-wc-discount-inline)
+      (let ((predicates (plist-get discount :predicate))
+            (modes (mapcar (lambda (x) (intern (format "%s-mode" x)))
+                           (plist-get discount :modes)))
+            (regex (plist-get discount :regex))
+            (groups (plist-get discount :groups)))
+        (when (and (or (not predicates) (cl-every #'eval predicates))
+                   (cl-every #'derived-mode-p modes))
+          ;; discount link target (keep description) counts
+          (save-match-data
+            (while (string-match (if (stringp regex) regex (eval regex)) line)
+              (let ((matches
+                     (delete
+                      '(nil)
+                      (mapcar (lambda (x)
+                                `(,(match-beginning x) . ,(match-end x)))
+                              groups))))
+                (setq line (live-wc--string-drop line matches))))))))
+    (live-wc--count-occurrences "\\w+" line)))
 
 
 (defun live-wc--parse-target (target &optional inner)

@@ -60,7 +60,7 @@
 Returns t only if size (cumulative if region) of scope is less than
 `live-wc-max-buffer-size'.
 
-BOUNDS is same parameter/format as accepted by `live-wc--count-text-words'"
+BOUNDS is same parameter/format as accepted by `live-wc--count-text-words'."
   (cond ((integerp bounds) (> live-wc-max-buffer-size (- bounds (point-min))))
         ((listp bounds)
          (> live-wc-max-buffer-size
@@ -121,24 +121,23 @@ of the org heading at point.
 Headings at levels beyond `live-wc-org-headline-levels',
 which defaults to `org-export-headline-levels', return nil."
   (interactive)
-  (if (not (and (featurep 'org) (derived-mode-p 'org-mode))) nil
-    (if (not (org-current-level)) nil
+  (when (and (featurep 'org) (derived-mode-p 'org-mode))
+    (when (org-current-level)
       (save-mark-and-excursion
-        (let*
-            ((org-begin
-              (progn
-                (when (and (use-region-p) (< (mark) (point)))
-                  (exchange-point-and-mark))
-                ;; Now, point < mark
-                (live-wc--goto-org-heading)
-                (point)))
-             (org-end
-              (progn
-                (when (use-region-p) (exchange-point-and-mark))
-                ;; Now, mark < point
-                (live-wc--goto-org-heading)
-                (org-narrow-to-subtree)
-                (point-max))))
+        (let* ((org-begin
+                (progn
+                  (when (and (use-region-p) (< (mark) (point)))
+                    (exchange-point-and-mark))
+                  ;; Now, point < mark
+                  (live-wc--goto-org-heading)
+                  (point)))
+               (org-end
+                (progn
+                  (when (use-region-p) (exchange-point-and-mark))
+                  ;; Now, mark < point
+                  (live-wc--goto-org-heading)
+                  (org-narrow-to-subtree)
+                  (point-max))))
           (widen)
           `((,org-begin . ,org-end)))))))
 

@@ -32,7 +32,8 @@
 
 (require 'outline)
 
-(declare-function org-in-regexp nil)  ; org declares this function
+
+(declare-function org-in-regexp nil)    ; org declares this function
 (defvar markdown-regex-gfm-code-block-open)
 (defvar markdown-regex-gfm-code-block-close)
 
@@ -41,7 +42,7 @@
   "Build live-wc--cont-end-regexp.
 
 Using supplied CONT-END-RE, CONT-BEGIN-RE and CONT-BEGIN-MATCH."
-  (or  ; Fallback: CONT-END-RE
+  (or                                   ; Fallback: CONT-END-RE
    (save-match-data
      (when-let*
          ((re-grpnum-re "\\\\\\(?1:[0-9]+\\)")
@@ -68,7 +69,7 @@ Using supplied CONT-END-RE, CONT-BEGIN-RE and CONT-BEGIN-MATCH."
 
 
 (defun live-wc--skip-cont (cont-begin-re cont-end-re
-                                          &optional before case-fold)
+                                         &optional before case-fold)
   "Return (beginning . end) if inside a container.
 
 Blocks, drawers, properties of `org-mode' are some examples of containers.
@@ -88,7 +89,7 @@ replaced with corresponding matches of CONT-BEGIN-RE."
           (pos (point)))
       (when-let*
           ((cont-end-re)
-           ((forward-line 0))          ; `beginning-of-line' does not work here.
+           ((forward-line 0))           ; `beginning-of-line' does not work
            ((re-search-forward cont-begin-re (line-end-position) t))
            ((goto-char (match-end 0)))
            (built-cont-end-re
@@ -130,6 +131,7 @@ BEFORE is passed on to `live-wc--skip-cont'."
     (live-wc--skip-cont markdown-regex-gfm-code-block-open
                         markdown-regex-gfm-code-block-close before)))
 
+
 (defun live-wc-skip-latex-frag (&optional before)
   "Skip LaTeX fragment.
 
@@ -144,10 +146,12 @@ BEFORE is passed on to `live-wc--skip-cont'."
   "Point is at a blank line."
   (= (line-beginning-position) (line-end-position)))
 
+
 (defun live-wc-at-comment-p ()
   "Point is at comment."
   (or (looking-at (format " *%s" comment-start-skip))  ; marker
-      (nth 4 (syntax-ppss))))  ; property
+      (nth 4 (syntax-ppss))))           ; property
+
 
 (provide 'live-wc-predicates)
 ;;; live-wc-predicates.el ends here
