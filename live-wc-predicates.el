@@ -33,88 +33,111 @@
 (require 'outline)
 
 (declare-function org-in-regexp nil)  ; org declares this function
+(defvar markdown-regex-gfm-code-block-open)
+(defvar markdown-regex-gfm-code-block-close)
 
 
-(defun live-wc--build-cont-end-re (cont-begin-re cont-begin-match cont-end-re)
+(defun live-wc--build-cont-end-re (cont-begin-re cont-end-re cont-begin-match)
   "Build live-wc--cont-end-regexp.
 
 Using supplied CONT-END-RE, CONT-BEGIN-RE and CONT-BEGIN-MATCH."
-  (save-match-data
-    (let* ((re-grpnum-re "\\\\\\(?1:[0-9]+\\)")
-           (cont-end-parts (split-string cont-end-re re-grpnum-re))
-           (cont-end-refs
-            (let ((re-pos 0) refs)
-              (while (string-match re-grpnum-re cont-end-re re-pos)
-                (push (string-to-number (match-string 1 cont-end-re)) refs)
-                (setq re-pos (match-end 1)))
-              (reverse refs)))
-           (cont-end-refs-alist
-            (progn (string-match cont-begin-re cont-begin-match)
-                   (mapcar (lambda (x) (match-string x cont-begin-match))
-                           cont-end-refs))))
-      (apply #'concat
-             (mapcan (lambda (n)
-                       (list (nth n cont-end-parts)
-                             (nth n cont-end-refs-alist)))
-                     (number-sequence
-                      0 (length cont-end-refs-alist)))))))
+  (or  ; Fallback: CONT-END-RE
+   (save-match-data
+     (when-let*
+         ((re-grpnum-re "\\\\\\(?1:[0-9]+\\)")
+          ;; Group references in CONT-END-RE (\\1, \\2, ...)
+          (cont-end-grps
+           (let ((re-pos 0) refs)
+             (while (string-match re-grpnum-re cont-end-re re-pos)
+               (push (string-to-number (match-string 1 cont-end-re)) refs)
+               (setq re-pos (match-end 1)))
+             (reverse refs)))
+          ;; Associate with what was found while matching CONT-BEGIN-RE
+          (grps-alist
+           (progn
+             (string-match cont-begin-re cont-begin-match)
+             (mapcar (lambda (x) (match-string x cont-begin-match))
+                     cont-end-grps)))
+          ;; CONT-END-RE parts split by references.
+          (cont-end-parts (split-string cont-end-re re-grpnum-re)))
+       ;; Insert at reference points in CONT-END-RE
+       (apply #'concat (mapcan (lambda (n) (list (nth n cont-end-parts)
+                                                 (nth n grps-alist)))
+                               (number-sequence 0 (length grps-alist))))))
+   cont-end-re))
 
 
-(defun live-wc--cont-range (cont-begin-re cont-end-re &optional after before)
+(defun live-wc--skip-cont (cont-begin-re cont-end-re
+                                          &optional before case-fold)
   "Return (beginning . end) if inside a container.
 
 Blocks, drawers, properties of `org-mode' are some examples of containers.
 Generally, it is region between CONT-BEGIN-RE and CONT-END-RE.
 
-CONT-BEGIN-RE and CONT-END-RE are searched between points AFTER and BEFORE.
-If either of AFTER and BEFORE are nil, it is discovered as the previous and
-next outline heading.  Such discovery may be overridden by supplying the value
-\\=':nil\\=', which enforces the nil value.
+CONT-BEGIN-RE and CONT-END-RE are searched before the point BEFORE.
+If BEFORE is nil, it is inferred as the `outline-next-heading'.
+Such inferrence may be overridden by supplying the value \\=':nil\\=',
+which enforces the nil value.  CASE-FOLD sets `case-fold-search'.
 
-Occurrences of \\\\1, \\\\2, ... in CONT-END-RE are replaced with corresponding
-match groups of CONT-BEGIN-RE."
+Group references, \\\\1, \\\\2, ... in CONT-END-RE are
+replaced with corresponding matches of CONT-BEGIN-RE."
   (save-match-data
-    (when-let*
-        ((case-fold-search t)
-         (cont-end-re)
-         (after (or after (save-excursion (outline-previous-heading)) :nil))
-         (before (or before (save-excursion (outline-next-heading)) :nil))
-         (pos (point))
-         ((forward-line 0))
-         ((re-search-forward cont-begin-re (line-end-position) t))
-         ((goto-char (match-end 0)))
-         (built-cont-end-re
-          (live-wc--build-cont-end-re cont-begin-re
-                                      (match-string-no-properties 0)
-                                      cont-end-re)))
-
-      (if (not (re-search-forward
-                built-cont-end-re (unless (eq :nil before) before) t))
-          (not (goto-char pos))
-        (goto-char (match-end 0))
-        :recheck))))
+    (let ((case-fold-search case-fold)
+          (before (unless (eq :nil before)
+                    (or before (save-excursion (outline-next-heading)))))
+          (pos (point)))
+      (when-let*
+          ((cont-end-re)
+           ((forward-line 0))          ; `beginning-of-line' does not work here.
+           ((re-search-forward cont-begin-re (line-end-position) t))
+           ((goto-char (match-end 0)))
+           (built-cont-end-re
+            (live-wc--build-cont-end-re
+             cont-begin-re cont-end-re (match-string-no-properties 0))))
+        (if (not (re-search-forward built-cont-end-re before t))
+            (not (goto-char pos))
+          (goto-char (match-end 0))
+          :recheck)))))
 
 
-(defun live-wc-org-block-range (&optional after before)
-  "Range of current org block.
+(defun live-wc-skip-org-block (&optional before)
+  "Skip org block at point.
 
-AFTER and BEFORE are passed on to `live-wc--cont-range'.
+BEFORE is passed on to `live-wc--ship-cont'.
 
-Block is identified by #+BEGIN_<> and #+END_<>
+Block is identified by #+BEGIN_(.+?) and corresponding #+END_(\\\\1)
 and need not be special block."
-  (if (not (featurep 'org)) nil
-    (live-wc--cont-range "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$"
-                         "^[[:blank:]]*#\\+end_\\1\\( .*\\)*$" after before)))
+  (when (featurep 'org)
+    (live-wc--skip-cont "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$"
+                        "^[[:blank:]]*#\\+end_\\1\\( .*\\)*$" before t)))
 
 
-(defun live-wc-org-drawer-range (&optional after before)
-  "Range of current drawer.
+(defun live-wc-skip-org-drawer (&optional before)
+  "Skip drawer at point.
 
-AFTER and BEFORE are passed on to `live-wc--cont-range'."
-  (if (not (featurep 'org)) nil
-    (live-wc--cont-range
-     "^[[:blank:]]*:\\(\\(?:\\w\\|[-_]\\)+\\):\\(?: .*\\)*$"
-     "^[[:blank:]]*:END:\\(?: .*\\)*$" after before)))
+BEFORE is passed on to `live-wc--skip-cont'."
+  (when (featurep 'org)
+    (live-wc--skip-cont
+     "^[[:blank:]]*:\\(\\(?:\\w\\|[-_]\\)+\\):[[:blank:]]*$"
+     "^[[:blank:]]*:END:\\(?: .*\\)*$" before)))
+
+
+(defun live-wc-skip-gfm-md-code (&optional before)
+  "Skip of code-block in github flavoured markdown.
+
+BEFORE is passed on to `live-wc--skip-cont'."
+  (when (and (featurep 'markdown-mode) (derived-mode-p 'markdown-mode))
+    (live-wc--skip-cont markdown-regex-gfm-code-block-open
+                        markdown-regex-gfm-code-block-close before)))
+
+(defun live-wc-skip-latex-frag (&optional before)
+  "Skip LaTeX fragment.
+
+BEFORE is passed on to `live-wc--skip-cont'."
+  (when (or (and (featurep 'tex-mode) (derived-mode-p 'tex-mode))
+            (and (featurep 'org) (derived-mode-p 'org-mode)))
+    (live-wc--skip-cont "^[[:blank:]]*\\$\\$[[:blank:]]*$"
+                        "^[[:blank:]]*\\$\\$[[:blank:]]*$" before)))
 
 
 (defun live-wc-line-blank-p ()

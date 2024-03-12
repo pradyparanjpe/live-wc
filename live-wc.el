@@ -4,7 +4,7 @@
 
 ;; Author: Pradyumna Paranjape <pradyparanjpe@rediffmail.com>
 ;; URL: https://www.gitlab.com/pradyparanjpe/live-wc
-;; Version: 0.0.3
+;; Version: 0.0.4
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is NOT part of GNU Emacs.

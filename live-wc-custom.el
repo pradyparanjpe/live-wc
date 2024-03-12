@@ -54,8 +54,10 @@
 
 
 (defcustom live-wc-ignore-if
-  '((:ignore live-wc-org-block-range  :desc "any org block")
-    (:ignore live-wc-org-drawer-range :desc "any org drawer")
+  '((:ignore live-wc-skip-org-block   :desc "any org block")
+    (:ignore live-wc-skip-org-drawer  :desc "any org drawer")
+    (:ignore live-wc-skip-gfm-md-code :desc "GFM md block")
+    (:ignore live-wc-skip-latex-frag  :desc "LaTeX fragment")
     (:ignore org-at-table-p           :desc "org table")
     (:ignore org-at-table.el-p        :desc "table.el")
     (:ignore org-at-TBLFM-p           :desc "org table formula")
