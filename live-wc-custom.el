@@ -83,7 +83,7 @@ Specifically, if the function returns
 (defcustom live-wc-discount-inline
   '((:regex org-link-any-re :groups (2) :predicates nil :modes (org))
     (:regex org-link-any-re :groups (5) :predicates nil :modes (org))
-    (:regex org-link-any-re :groups (8) :predicates nil :modes (org))
+    (:regex org-link-any-re :groups (7) :predicates nil :modes (org))
     (:regex markdown-regex-link-inline :groups (5 6 7 8) :predicates nil
             :modes (markdown))
     (:regex org-radio-target-regexp :groups (1) :predicates nil :modes (org)))

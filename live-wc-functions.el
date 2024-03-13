@@ -77,19 +77,18 @@ Headings beyond `live-wc--org-headlines-levels' are ignored as =list items=."
   "Drop from STRING and return residue.
 
 DROP is a list of cons, each corresponding to regions to be dropped
-from the original string.  Regions from their car to cdr is dropped.
-Currently does not support overlapping regions"
-  (let ((residue string))
-    (setq drop (sort drop (lambda (x y) (< (car x) (car y)))))
-    (dolist (i-pair drop)
-      (setq drop
-            (mapcar
-             (lambda (j-pair)
-               (if (>= (car i-pair) (car j-pair)) j-pair
-                 (let ((pre-dropped (- (cdr i-pair) (car i-pair))))
-                   (cons (- (car j-pair) pre-dropped)
-                         (- (cdr j-pair) pre-dropped)))))
-             drop)))
+from the original string.  Regions from their car to cdr are dropped."
+  (let ((residue string)
+        (drop
+         (cl-reduce
+          (lambda (new-list next-pair)
+            "Merge for overlaps."
+            (if (null new-list) (push next-pair new-list)
+              (if (> (car next-pair) (cdar new-list)) (push next-pair new-list)
+                (setf (cdar new-list) (max (cdar new-list) (cdr next-pair)))))
+            new-list)
+          (sort drop (lambda (x y) (< (car x) (car y))))
+          :initial-value nil)))
     (dolist (pair drop)
       (setq residue (concat (substring residue 0 (car pair))
                             (substring residue (cdr pair)))))
@@ -127,24 +126,28 @@ Discount (this list will expand):
   (let* ((start (or start (if (use-region-p) (region-beginning) (point-min))))
          (end (or end (if (use-region-p) (region-end) (point-max))))
          (line (buffer-substring-no-properties start end)))
-    (dolist (discount live-wc-discount-inline)
-      (let ((predicates (plist-get discount :predicate))
-            (modes (mapcar (lambda (x) (intern (format "%s-mode" x)))
-                           (plist-get discount :modes)))
-            (regex (plist-get discount :regex))
-            (groups (plist-get discount :groups)))
-        (when (and (or (not predicates) (cl-every #'eval predicates))
-                   (cl-every #'derived-mode-p modes))
-          ;; discount link target (keep description) counts
-          (save-match-data
-            (while (string-match (if (stringp regex) regex (eval regex)) line)
+    (save-match-data
+      (dolist (discount live-wc-discount-inline)
+        (let ((predicates (plist-get discount :predicate))
+              (modes (mapcar (lambda (x) (intern (format "%s-mode" x)))
+                             (plist-get discount :modes)))
+              (regex (plist-get discount :regex))
+              (groups (plist-get discount :groups))
+              (unmodified))
+          (when (and (or (not predicates) (cl-every #'eval predicates))
+                     (cl-every #'derived-mode-p modes))
+            ;; discount link target (keep description) counts
+            (while (and (not unmodified)
+                        (string-match (if (stringp regex) regex (eval regex))
+                                      line))
               (let ((matches
-                     (delete
-                      '(nil)
-                      (mapcar (lambda (x)
-                                `(,(match-beginning x) . ,(match-end x)))
-                              groups))))
-                (setq line (live-wc--string-drop line matches))))))))
+                     (delq nil (mapcar (lambda (x)
+                                         (when-let ((beg (match-beginning x))
+                                                    (end (match-end x)))
+                                           `(,beg . ,end)))
+                                       groups))))
+                (if (not matches) (setq unmodified t)
+                  (setq line (live-wc--string-drop line matches)))))))))
     (live-wc--count-occurrences "\\w+" line)))
 
 
